@@ -90,11 +90,28 @@
             overflow-y: auto;
             text-align: left;
         }
+        .copy-btn {
+            background: #2a2f3f;
+            margin-top: 8px;
+            font-size: 14px;
+            padding: 6px 12px;
+            width: auto;
+        }
+        .copy-btn:active {
+            background: #1e2436;
+        }
         .status {
             color: #a0a4b8;
             margin-top: 10px;
             font-size: 12px;
             text-align: center;
+        }
+        .error-line {
+            color: #ff6b6b;
+            display: block;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
     </style>
 </head>
@@ -133,6 +150,7 @@ glEnd();</textarea>
             <canvas id="canvas" width="400" height="400"></canvas>
             <button id="runBtn">▶ Запустить код</button>
             <div class="output" id="output">Нажмите "Запустить"</div>
+            <button id="copyErrorsBtn" class="copy-btn">📋 Копировать ошибки</button>
         </div>
     </div>
     <div class="status">C-подобный синтаксис: int, float, if, for, while, glColor3f(r,g,b), glVertex2f(x,y), glBegin(), glEnd()</div>
@@ -150,11 +168,15 @@ glEnd();</textarea>
     const ctx = canvas.getContext('2d');
     const codeArea = document.getElementById('code');
     const outputDiv = document.getElementById('output');
+    const copyErrorsBtn = document.getElementById('copyErrorsBtn');
 
     // Состояние OpenGL-подобного рендеринга
     let currentColor = { r: 1.0, g: 1.0, b: 1.0 };
     let vertices = [];
     let inBegin = false;
+    
+    // Хранилище ошибок для копирования
+    let lastErrors = [];
 
     function rgbToStyle(r,g,b) {
         return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`;
@@ -226,9 +248,12 @@ glEnd();</textarea>
     }
 
     // Основной интерпретатор
-    function runCode(code) {
-        clearCanvas();
-        outputDiv.innerHTML = '';
+    function runCode(code, isInner = false) {
+        if (!isInner) {
+            clearCanvas();
+            outputDiv.innerHTML = '';
+            lastErrors = [];
+        }
         let vars = {};
         let lines = code.split('\n');
         let i = 0;
@@ -263,6 +288,23 @@ glEnd();</textarea>
             return { blockLines, newIndex: j };
         }
 
+        function addError(msg) {
+            let errMsg = `⚠️ ${msg}`;
+            lastErrors.push(errMsg);
+            if (!isInner) {
+                outputDiv.innerHTML += `<span class="error-line">${escapeHtml(errMsg)}</span>`;
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
         while (i < lines.length) {
             let line = lines[i].trim();
             i++;
@@ -276,7 +318,7 @@ glEnd();</textarea>
                     let name = declMatch[2];
                     let value = evaluate(declMatch[3], vars);
                     vars[name] = value;
-                    outputDiv.innerHTML += `> ${declMatch[1]} ${name} = ${value}<br>`;
+                    if (!isInner) outputDiv.innerHTML += `> ${declMatch[1]} ${name} = ${value}<br>`;
                     continue;
                 }
 
@@ -286,7 +328,7 @@ glEnd();</textarea>
                     let name = assignMatch[1];
                     let value = evaluate(assignMatch[2], vars);
                     vars[name] = value;
-                    outputDiv.innerHTML += `> ${name} = ${value}<br>`;
+                    if (!isInner) outputDiv.innerHTML += `> ${name} = ${value}<br>`;
                     continue;
                 }
 
@@ -297,21 +339,21 @@ glEnd();</textarea>
                     let argsStr = glMatch[2];
                     let args = argsStr.split(',').map(a => evaluate(a.trim(), vars));
                     glFunctions[funcName](...args);
-                    outputDiv.innerHTML += `> ${funcName}(${args.join(', ')})<br>`;
+                    if (!isInner) outputDiv.innerHTML += `> ${funcName}(${args.join(', ')})<br>`;
                     continue;
                 }
 
                 // glBegin() без параметров
                 if (line === 'glBegin();') {
                     glFunctions.glBegin();
-                    outputDiv.innerHTML += `> glBegin()<br>`;
+                    if (!isInner) outputDiv.innerHTML += `> glBegin()<br>`;
                     continue;
                 }
 
                 // glEnd() без параметров
                 if (line === 'glEnd();') {
                     glFunctions.glEnd();
-                    outputDiv.innerHTML += `> glEnd()<br>`;
+                    if (!isInner) outputDiv.innerHTML += `> glEnd()<br>`;
                     continue;
                 }
 
@@ -347,7 +389,7 @@ glEnd();</textarea>
                             i = block.newIndex;
                         }
                         if (condResult) {
-                            runCode(block.blockLines.join('\n'));
+                            runCode(block.blockLines.join('\n'), true);
                         }
                     } else {
                         // однострочный if
@@ -355,7 +397,7 @@ glEnd();</textarea>
                         i++;
                         if (condResult) {
                             let tempCode = bodyLine;
-                            runCode(tempCode);
+                            runCode(tempCode, true);
                         }
                     }
                     continue;
@@ -401,7 +443,7 @@ glEnd();</textarea>
                         if (!condResult) break;
 
                         // выполняем тело
-                        runCode(block.blockLines.join('\n'));
+                        runCode(block.blockLines.join('\n'), true);
 
                         // инкремент
                         let incMatch = increment.match(/([a-zA-Z_]+)\s*=\s*(.+)/);
@@ -416,16 +458,29 @@ glEnd();</textarea>
 
                 // Если ничего не подошло
                 if (line && !line.startsWith('//')) {
-                    outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Ошибка в строке ${i}: ${line}</span><br>`;
+                    addError(`Строка ${i}: неизвестная команда "${line}"`);
                 }
             } catch(e) {
-                outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Ошибка в строке ${i}: ${e.message}</span><br>`;
+                addError(`Строка ${i}: ${e.message} (${line})`);
             }
         }
     }
 
     document.getElementById('runBtn').addEventListener('click', () => {
         runCode(codeArea.value);
+    });
+
+    copyErrorsBtn.addEventListener('click', () => {
+        if (lastErrors.length === 0) {
+            alert('Нет ошибок для копирования');
+            return;
+        }
+        let errorText = lastErrors.join('\n');
+        navigator.clipboard.writeText(errorText).then(() => {
+            alert(`Скопировано ${lastErrors.length} ошибок`);
+        }).catch(() => {
+            alert('Не удалось скопировать');
+        });
     });
 
     runCode(codeArea.value);
