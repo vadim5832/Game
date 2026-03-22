@@ -3,669 +3,609 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>C to JS - Умный компилятор</title>
+    <title>Мгновенный мессенджер | GitHub Pages</title>
     <style>
         * {
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            background: #2d2d30;
             margin: 0;
-            padding: 20px;
-            font-family: monospace;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .ide-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: #1e1e1e;
-            border-radius: 8px;
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        /* главный контейнер чата */
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(2px);
+            border-radius: 32px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
-        
-        .toolbar {
-            background: #2d2d30;
-            padding: 10px;
+
+        /* шапка */
+        .chat-header {
+            background: #1e2f3c;
+            padding: 18px 24px;
+            border-bottom: 1px solid #2e4555;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: baseline;
             flex-wrap: wrap;
+            gap: 8px;
         }
-        
-        .toolbar button {
-            background: #0e639c;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        
-        .toolbar button:hover { background: #1177bb; }
-        .toolbar .save-btn { background: #2b7a3e; }
-        
-        .status-bar {
-            background: #007acc;
-            color: white;
-            padding: 4px 10px;
-            font-size: 12px;
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #f0f3f8;
+            letter-spacing: -0.3px;
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .main-content {
-            display: flex;
-            min-height: 550px;
+
+        .chat-header h1 span {
+            background: #2ecc71;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 40px;
+            font-weight: normal;
         }
-        
-        .editor-panel {
+
+        .online-badge {
+            font-size: 0.75rem;
+            background: #2c3e44;
+            padding: 4px 12px;
+            border-radius: 50px;
+            color: #b3e4c5;
+        }
+
+        /* окно сообщений */
+        .messages-area {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .panel-header {
-            background: #252526;
-            padding: 8px;
-            color: #ccc;
-            border-bottom: 1px solid #3e3e42;
-        }
-        
-        textarea {
-            flex: 1;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: none;
-            padding: 10px;
-            font-family: 'Consolas', monospace;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-        }
-        
-        .output-panel {
-            width: 400px;
-            background: #1e1e1e;
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid #3e3e42;
-        }
-        
-        .output-area {
-            flex: 1;
-            background: #1e1e1e;
-            color: #ccc;
-            font-family: monospace;
-            font-size: 12px;
-            padding: 10px;
             overflow-y: auto;
+            padding: 20px 20px 12px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #0e1a22;
+            scroll-behavior: smooth;
         }
-        
-        .error-text { color: #f48771; }
-        .success-text { color: #6a9955; }
-        .info-text { color: #9cdcfe; }
-        
-        .animation-window {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #2d2d30;
-            border-radius: 12px;
-            z-index: 1000;
-            border: 2px solid #4c6ef5;
-            display: none;
+
+        /* сообщения */
+        .message {
+            max-width: 75%;
+            display: flex;
+            flex-direction: column;
+            animation: fadeSlide 0.2s ease;
         }
-        
-        .animation-window.show { display: block; }
-        
-        .window-titlebar {
-            background: #3e3e42;
-            padding: 10px;
+
+        .message.outgoing {
+            align-self: flex-end;
+        }
+
+        .message.incoming {
+            align-self: flex-start;
+        }
+
+        .message-bubble {
+            padding: 10px 16px;
+            border-radius: 24px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-break: break-word;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+        }
+
+        .outgoing .message-bubble {
+            background: #2ecc71;
+            color: #0f1f2a;
+            border-bottom-right-radius: 4px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .incoming .message-bubble {
+            background: #1f3a44;
+            color: #eef4ff;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #2f4b58;
+        }
+
+        .message-meta {
+            font-size: 0.7rem;
+            margin-top: 4px;
+            margin-left: 12px;
+            margin-right: 12px;
+            color: #7e95a3;
+            display: flex;
+            gap: 12px;
+        }
+
+        .outgoing .message-meta {
+            justify-content: flex-end;
+        }
+
+        /* индикатор печатания / статус */
+        .typing-indicator {
+            font-size: 0.75rem;
+            color: #a0c4db;
+            padding: 8px 16px;
+            background: #10212b;
+            border-radius: 20px;
+            display: inline-block;
+            width: fit-content;
+            margin-top: 4px;
+        }
+
+        /* форма ввода */
+        .input-area {
+            background: #15262f;
+            padding: 16px 20px;
+            border-top: 1px solid #2a4453;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-area input {
+            flex: 1;
+            background: #0c1920;
+            border: 1px solid #2f5568;
+            padding: 12px 18px;
+            border-radius: 40px;
+            font-size: 1rem;
+            color: #f0f6fc;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: #2ecc71;
+            box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.3);
+        }
+
+        .input-area input::placeholder {
+            color: #5f7f8f;
+        }
+
+        .input-area button {
+            background: #2ecc71;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #0a1a22;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-area button:hover {
+            background: #27ae60;
+            transform: scale(0.97);
+        }
+
+        /* доп. панель */
+        .info-bar {
             display: flex;
             justify-content: space-between;
-            cursor: move;
+            background: #10242e;
+            padding: 8px 20px;
+            font-size: 0.7rem;
+            color: #85adc2;
+            border-top: 1px solid #1f3e4c;
         }
-        
-        .window-close {
-            background: #e81123;
-            border: none;
-            color: white;
-            width: 28px;
-            cursor: pointer;
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
-        .window-content {
-            padding: 20px;
-            background: #0a0c12;
-            text-align: center;
+
+        /* скроллбар */
+        .messages-area::-webkit-scrollbar {
+            width: 5px;
         }
-        
-        .animation-canvas {
-            width: 400px;
-            height: 400px;
-            cursor: crosshair;
+        .messages-area::-webkit-scrollbar-track {
+            background: #10242e;
         }
-        
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 999;
-            display: none;
+        .messages-area::-webkit-scrollbar-thumb {
+            background: #2ecc71;
+            border-radius: 10px;
         }
-        
-        .overlay.show { display: block; }
-        
-        .coords-box {
-            margin-top: 10px;
-            color: #4c6ef5;
-            font-family: monospace;
-            background: #1e1e1e;
-            padding: 5px;
-            border-radius: 4px;
+
+        @media (max-width: 550px) {
+            .message {
+                max-width: 85%;
+            }
+            .chat-header h1 {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="ide-container">
-    <div class="toolbar">
-        <button id="compileBtn">▶ Компилировать и запустить (F5)</button>
-        <button id="saveBtn" class="save-btn">💾 Сохранить HTML</button>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>
+            📡 SwiftTalk 
+            <span>live</span>
+        </h1>
+        <div class="online-badge" id="connectionStatus">🟢 онлайн · API ready</div>
     </div>
-    <div class="status-bar">
-        <span>C → JavaScript (умный компилятор)</span>
-        <span id="statusText">Готов</span>
-    </div>
-    <div class="main-content">
-        <div class="editor-panel">
-            <div class="panel-header">📝 Пиши с void, но без типов в for и параметрах</div>
-            <textarea id="code">// Шахматная доска
-void drawBoard() {
-    for(y = 0; y < 8; y = y + 1) {
-        for(x = 0; x < 8; x = x + 1) {
-            if((x + y) % 2 == 0) {
-                glColor3f(0.2, 0.2, 0.2);
-            } else {
-                glColor3f(0.9, 0.9, 0.9);
-            }
-            glBegin(GL_QUADS);
-                glVertex3f(x * 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
-            glEnd();
-        }
-    }
-}
 
-// Рисование круга
-void drawCircle(float cx, float cy, float r, float red, float green, float blue) {
-    glColor3f(red, green, blue);
-    glBegin(GL_TRIANGLE_FAN);
-        glVertex3f(cx, cy, 0.0);
-        for(i = 0; i <= 36; i = i + 1) {
-            float angle = i * 10.0 * 3.14159 / 180.0;
-            glVertex3f(cx + r * cos(angle), cy + r * sin(angle), 0.0);
-        }
-    glEnd();
-}
-
-// Рисование квадрата
-void drawSquare(float cx, float cy, float size, float red, float green, float blue) {
-    glColor3f(red, green, blue);
-    glBegin(GL_QUADS);
-        glVertex3f(cx, cy, 0.0);
-        glVertex3f(cx + size, cy, 0.0);
-        glVertex3f(cx + size, cy + size, 0.0);
-        glVertex3f(cx, cy + size, 0.0);
-    glEnd();
-}
-
-// Переменные
-float posX;
-float speed;
-int direction;
-
-posX = 50.0;
-speed = 3.0;
-direction = 1;
-
-// Список кругов
-int circlesCount;
-float circlesX[100];
-float circlesY[100];
-int circlesR[100];
-circlesCount = 0;
-
-// Функция при нажатии - void ОБЯЗАТЕЛЕН, но типы параметров НЕ НУЖНЫ
-void onTap(x, y) {
-    circlesX[circlesCount] = x;
-    circlesY[circlesCount] = y;
-    circlesR[circlesCount] = 15;
-    circlesCount = circlesCount + 1;
-}
-
-// Анимация
-while(1) {
-    glClear();
-    drawBoard();
-    
-    posX = posX + speed * direction;
-    
-    if(posX > 350.0) {
-        posX = 350.0;
-        direction = -1;
-    }
-    if(posX < 50.0) {
-        posX = 50.0;
-        direction = 1;
-    }
-    
-    drawSquare(posX - 45.0, 295.0, 30.0, 0.2, 0.4, 0.8);
-    drawSquare(posX + 35.0, 295.0, 30.0, 0.2, 0.8, 0.2);
-    
-    // Рисуем все сохраненные круги
-    for(i = 0; i < circlesCount; i = i + 1) {
-        drawCircle(circlesX[i], circlesY[i], circlesR[i], 1.0, 1.0, 0.0);
-    }
-    
-    delay(30);
-}</textarea>
+    <div class="messages-area" id="messagesContainer">
+        <!-- динамические сообщения -->
+        <div class="message incoming">
+            <div class="message-bubble">
+                💡 Добро пожаловать! Это демо-мессенджер с имитацией API.
+            </div>
+            <div class="message-meta">сервер · только что</div>
         </div>
-        <div class="output-panel">
-            <div class="panel-header">📟 Вывод компиляции</div>
-            <div class="output-area" id="output">> Готов. Пиши код с void, но без типов в for и параметрах!<br>> Пример: void onTap(x, y) - x и y автоматом будут объявлены<br>> Нажми F5 для компиляции и запуска</div>
+        <div class="message incoming">
+            <div class="message-bubble">
+                🔌 Встроенный REST-like API (mock) поддерживает получение/отправку сообщений.
+            </div>
+            <div class="message-meta">бот · сейчас</div>
         </div>
     </div>
-</div>
 
-<div class="overlay" id="overlay"></div>
-<div class="animation-window" id="animationWindow">
-    <div class="window-titlebar" id="titlebar">
-        <span>🎮 OpenGL Анимация</span>
-        <button class="window-close" id="closeBtn">✕</button>
+    <div id="typingZone" class="typing-indicator" style="display: none; margin-left: 20px; margin-bottom: 4px;">
+        ✍️ Собеседник печатает...
     </div>
-    <div class="window-content">
-        <canvas id="canvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div class="coords-box" id="coordsText">👆 Нажми - появится круг</div>
-        <div style="margin-top: 10px;">
-            <button id="stopBtn">⏹ Остановить</button>
-            <button id="clearBtn" style="background:#e81123;">🗑 Очистить круги</button>
-        </div>
+
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
+        <button id="sendBtn">📨 Отправить</button>
+    </div>
+    <div class="info-bar">
+        <span>⚡ mock API (имитация бэкенда) | можно заменить на реальный эндпоинт</span>
+        <span id="apiHint">🧠 логика на JS / C через WebAssembly?</span>
     </div>
 </div>
 
 <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const output = document.getElementById('output');
-    const statusSpan = document.getElementById('statusText');
-    const codeArea = document.getElementById('code');
-    const coordsText = document.getElementById('coordsText');
+    // ================================
+    //   📡 MOCK API ДЛЯ МЕССЕНДЖЕРА 
+    // ================================
+    // Это универсальный слой-заглушка, который эмулирует REST API.
+    // Вы можете заменить его на реальные fetch-запросы к вашему бэкенду,
+    // в том числе написанному на C (например, через FastCGI, libmicrohttpd, или даже WebAssembly).
+    //
+    // 💡 ОТВЕТ НА ВОПРОС: "МОЖНО ЛИ ПИСАТЬ НА C, А ОНО ВСЁ БУДЕТ В HTML РИСОВАТЬ?"
+    //    ДА! Есть несколько способов:
+    //    1. Вы пишете HTTP сервер на C (например, с использованием libmicrohttpd или civetweb).
+    //       Этот HTML-файл отправляет fetch() запросы на ваш C-сервер, который возвращает JSON.
+    //       Вся логика аутентификации, хранения сообщений, пользователей — на C.
+    //       Здесь фронтенд только рисует, а данные приходят с C-бэкенда.
+    //    2. WebAssembly: вы компилируете C код в WASM, и вызываете его прямо из JS.
+    //       Тогда логика на C работает внутри браузера, а рендеринг через DOM.
+    //    В данном демо я реализовал "mock API", который повторяет структуру реальных вызовов.
+    //    Вы легко замените функции getMessages, sendMessage на реальные запросы к вашему C-серверу.
+    // ================================
+
+    // ----------  Mock Data Store (имитация базы) ----------
+    let messagesDB = [
+        { id: "1", text: "Привет! Это тестовое сообщение. API работает локально.", sender: "other", timestamp: Date.now() - 3600000 },
+        { id: "2", text: "Можешь писать сюда — всё сохраняется в памяти (mock).", sender: "other", timestamp: Date.now() - 1800000 },
+        { id: "3", text: "🚀 Поддержка симуляции задержки сети, как в реальном API.", sender: "other", timestamp: Date.now() - 600000 }
+    ];
     
-    // OpenGL эмуляция
-    let color = { r: 1, g: 1, b: 1 };
-    let verts = [];
-    let mode = null;
+    // вспомогательная генерация ID
+    function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    }
+
+    // ---- ИМИТАЦИЯ ЗАПРОСОВ К API (асинхронные функции) ----
+    // Эти функции можно безболезненно переписать на реальные fetch к C-бэкенду.
+    // Например: GET /api/messages , POST /api/messages
     
-    function drawQuads() {
-        for (let i = 0; i <= verts.length - 4; i += 4) {
-            ctx.beginPath();
-            ctx.moveTo(verts[i].x, verts[i].y);
-            ctx.lineTo(verts[i+1].x, verts[i+1].y);
-            ctx.lineTo(verts[i+2].x, verts[i+2].y);
-            ctx.lineTo(verts[i+3].x, verts[i+3].y);
-            ctx.fillStyle = `rgb(${color.r*255},${color.g*255},${color.b*255})`;
-            ctx.fill();
+    /**
+     * GET /api/messages — получить последние сообщения
+     * @returns {Promise<Array>} список сообщений
+     */
+    async function mockApiGetMessages() {
+        // симулируем задержку сети (от 150 до 400 мс) как реальный сервер
+        await delay(180);
+        // возвращаем копию массива, сортируем по времени
+        return [...messagesDB].sort((a,b) => a.timestamp - b.timestamp);
+    }
+    
+    /**
+     * POST /api/messages — отправить новое сообщение
+     * @param {string} text текст сообщения
+     * @param {string} senderId отправитель (у нас всегда "me" для исходящих)
+     * @returns {Promise<Object>} созданное сообщение с сервера
+     */
+    async function mockApiSendMessage(text, senderId = "me") {
+        if (!text || text.trim() === "") throw new Error("Пустое сообщение");
+        await delay(220); // имитация обработки на C-сервере
+        const newMsg = {
+            id: generateId(),
+            text: text.trim(),
+            sender: senderId,
+            timestamp: Date.now()
+        };
+        messagesDB.push(newMsg);
+        // имитируем автоответ (бота) иногда — дополнительная фича для живости
+        // но не спамим, только если сообщение от человека
+        if (senderId === "me" && Math.random() > 0.6) {
+            // эмулируем ответ "собеседника" через 0.5-1.2 сек (как будто другой пользователь)
+            setTimeout(() => {
+                const autoReplies = [
+                    "😎 Круто! А я на C бэкенд пишу, всё летает!",
+                    "📡 Интересно, а твой API уже на реальном сервере?",
+                    "🔥 Отличный мессенджер! Можно будет связать с WebSocket.",
+                    "💬 Сообщение получено, отвечаю через mock-бота."
+                ];
+                const randomReply = autoReplies[Math.floor(Math.random() * autoReplies.length)];
+                const botMsg = {
+                    id: generateId(),
+                    text: randomReply,
+                    sender: "other",
+                    timestamp: Date.now()
+                };
+                messagesDB.push(botMsg);
+                // обновляем UI если компонент активен
+                if (typeof refreshMessagesUI === 'function') refreshMessagesUI();
+                // показать индикатор "печатает" на секунду
+                showTypingIndicator(true);
+                setTimeout(() => showTypingIndicator(false), 1200);
+            }, 700 + Math.random() * 800);
         }
+        return newMsg;
     }
     
-    function drawTriangleFan() {
-        if (verts.length < 2) return;
-        let first = verts[0];
-        for (let i = 1; i < verts.length - 1; i++) {
-            ctx.beginPath();
-            ctx.moveTo(first.x, first.y);
-            ctx.lineTo(verts[i].x, verts[i].y);
-            ctx.lineTo(verts[i+1].x, verts[i+1].y);
-            ctx.fillStyle = `rgb(${color.r*255},${color.g*255},${color.b*255})`;
-            ctx.fill();
-        }
+    /**
+     * DELETE /api/messages/:id (доп. функция для очистки чата, по желанию)
+     * @param {string} id 
+     */
+    async function mockApiDeleteMessage(id) {
+        await delay(150);
+        messagesDB = messagesDB.filter(msg => msg.id !== id);
     }
     
-    function flush() {
-        if (verts.length === 0) return;
-        if (mode === 'GL_QUADS') drawQuads();
-        else if (mode === 'GL_TRIANGLE_FAN') drawTriangleFan();
-        verts = [];
-    }
+    // вспомогательные функции
+    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
     
-    // Глобальные OpenGL функции
-    window.glColor3f = (r,g,b) => { color = { r, g, b }; };
-    window.glVertex3f = (x,y,z) => { verts.push({ x, y }); };
-    window.glBegin = (m) => { mode = m; verts = []; };
-    window.glEnd = () => { flush(); mode = null; };
-    window.glClear = () => {
-        ctx.fillStyle = '#0a0c12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
-    window.delay = (ms) => new Promise(r => setTimeout(r, ms));
-    window.cos = Math.cos;
-    window.sin = Math.sin;
+    // ----- Рендеринг UI и управление состоянием -----
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendBtn');
+    const connectionSpan = document.getElementById('connectionStatus');
+    let currentTypingTimeout = null;
     
-    // ========== УМНЫЙ КОНВЕРТЕР C → JAVASCRIPT ==========
-    function convertCtoJS(code) {
-        let js = code;
-        
-        // 1. Обработка void functionName(params) - убираем void, оставляем function
-        // Находит: void имя(параметры) {
-        js = js.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, 
-            (match, name, params) => {
-                // Обрабатываем параметры - убираем типы если есть
-                let cleanParams = params;
-                // Убираем float и int из параметров
-                cleanParams = cleanParams.replace(/\b(float|int)\s+/g, '');
-                // Убираем лишние пробелы
-                cleanParams = cleanParams.trim();
-                return `function ${name}(${cleanParams}) {`;
-            });
-        
-        // 2. Обработка объявлений переменных (int x; float y;)
-        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $2;');
-        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 'let $2 = $3;');
-        
-        // 3. Обработка массивов: int name[100];
-        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\[(\d+)\]\s*;/g, 'let $2 = new Array($3);');
-        
-        // 4. Обработка for(i = 0; i < n; i = i + 1) -> добавляем let i
-        // Находим все for(переменная = ...) и добавляем let если переменная не объявлена
-        js = js.replace(/for\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 
-            'for(let $1 = $2;');
-        
-        // 5. while(1) -> while(true)
-        js = js.replace(/while\s*\(\s*1\s*\)/g, 'while(true)');
-        
-        // 6. Убираем типы float и int из выражений (оставляем только числа)
-        // Но оставляем их в объявлениях (уже обработали)
-        
-        // 7. Добавляем await перед delay
-        js = js.replace(/delay\(/g, 'await delay(');
-        
-        // 8. Оборачиваем весь код в async функцию если есть while(true)
-        if (js.includes('while(true)')) {
-            js = 'async function __main__() {\n' + js + '\n}\n__main__();';
-        }
-        
-        // 9. Заменяем GL_QUADS и GL_TRIANGLE_FAN на строки
-        js = js.replace(/GL_QUADS/g, '"GL_QUADS"');
-        js = js.replace(/GL_TRIANGLE_FAN/g, '"GL_TRIANGLE_FAN"');
-        
-        // 10. Добавляем let для переменных в for если их нет
-        // Уже сделано в шаге 4
-        
-        return js;
-    }
-    
-    function addOutput(msg, type = 'info') {
-        const cls = type === 'error' ? 'error-text' : (type === 'success' ? 'success-text' : 'info-text');
-        output.innerHTML += `<div class="${cls}">> ${msg}</div>`;
-        output.scrollTop = output.scrollHeight;
-        if (output.children.length > 100) {
-            output.removeChild(output.children[0]);
-        }
-    }
-    
-    function getCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        let cx, cy;
-        if (e.touches) {
-            cx = e.touches[0].clientX;
-            cy = e.touches[0].clientY;
+    // показать/скрыть "печатает"
+    function showTypingIndicator(show) {
+        const typingDiv = document.getElementById('typingZone');
+        if (show) {
+            typingDiv.style.display = 'block';
+            if (currentTypingTimeout) clearTimeout(currentTypingTimeout);
+            currentTypingTimeout = setTimeout(() => {
+                typingDiv.style.display = 'none';
+            }, 2500);
         } else {
-            cx = e.clientX;
-            cy = e.clientY;
-        }
-        let x = (cx - rect.left) * scaleX;
-        let y = (cy - rect.top) * scaleY;
-        x = Math.max(0, Math.min(canvas.width, x));
-        y = Math.max(0, Math.min(canvas.height, y));
-        return { x: Math.floor(x), y: Math.floor(y) };
-    }
-    
-    function onCanvasClick(e) {
-        e.preventDefault();
-        const c = getCoords(e);
-        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y} - круг добавлен!`;
-        
-        if (typeof window.onTap === 'function') {
-            try {
-                window.onTap(c.x, c.y);
-            } catch(err) {
-                addOutput(`Ошибка: ${err.message}`, 'error');
-            }
+            typingDiv.style.display = 'none';
+            if (currentTypingTimeout) clearTimeout(currentTypingTimeout);
         }
     }
     
-    canvas.addEventListener('click', onCanvasClick);
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onCanvasClick(e); });
-    
-    async function compileAndRun() {
-        const cCode = codeArea.value;
+    // отрисовка всех сообщений на основе данных из messagesDB (mock хранилище)
+    async function refreshMessagesUI() {
+        // получаем актуальные данные через API (mock, но имитирует реальный)
+        let currentMessages = [];
+        try {
+            // показать статус загрузки (опционально)
+            connectionSpan.innerHTML = '🟡 получение данных...';
+            currentMessages = await mockApiGetMessages();
+            connectionSpan.innerHTML = '🟢 онлайн · API готов';
+        } catch (err) {
+            console.error("API ошибка:", err);
+            connectionSpan.innerHTML = '🔴 ошибка API (mock)';
+            return;
+        }
         
-        output.innerHTML = '';
-        addOutput('🔨 Компиляция C-кода...', 'info');
-        statusSpan.innerText = 'Компиляция...';
+        // чистим контейнер, но оставляем возможно служебные блоки? полностью перестроим
+        messagesContainer.innerHTML = '';
+        if (currentMessages.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'message incoming';
+            emptyDiv.innerHTML = `<div class="message-bubble">✨ Пока нет сообщений. Напишите что-нибудь!</div>
+                                  <div class="message-meta">чат пуст</div>`;
+            messagesContainer.appendChild(emptyDiv);
+        } else {
+            currentMessages.forEach(msg => {
+                const isMe = (msg.sender === 'me');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isMe ? 'outgoing' : 'incoming'}`;
+                // форматируем время
+                const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+                const senderLabel = isMe ? 'Вы' : 'Алекс (собеседник)';
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">${escapeHtml(msg.text)}</div>
+                    <div class="message-meta">
+                        <span>${senderLabel}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                `;
+                messagesContainer.appendChild(messageDiv);
+            });
+        }
+        // прокрутка вниз
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // простой esc HTML
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+    
+    // отправка нового сообщения (через API)
+    async function sendMessageHandler() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        
+        // оптимистичное отключение кнопки на время отправки
+        sendButton.disabled = true;
+        const originalBtnText = sendButton.innerHTML;
+        sendButton.innerHTML = '⏳ ...';
         
         try {
-            let jsCode = convertCtoJS(cCode);
-            
-            addOutput('✅ Конвертация успешна', 'success');
-            addOutput('📝 Преобразованный код:', 'info');
-            let preview = jsCode.substring(0, 400);
-            if (jsCode.length > 400) preview += '...';
-            addOutput(preview, 'info');
-            
-            if (window.running) {
-                window.running = false;
-                await new Promise(r => setTimeout(r, 200));
-            }
-            
-            window.running = true;
-            
-            const func = new Function(`
-                window.running = true;
-                ${jsCode}
-            `);
-            
-            func();
-            
-            addOutput('✅ Программа запущена!', 'success');
-            statusSpan.innerText = 'Работает';
-            
-            document.getElementById('animationWindow').classList.add('show');
-            document.getElementById('overlay').classList.add('show');
-            
-        } catch(err) {
-            addOutput(`❌ Ошибка компиляции: ${err.message}`, 'error');
-            statusSpan.innerText = 'Ошибка';
-            console.error(err);
+            // вызываем API отправки (POST)
+            const sentMsg = await mockApiSendMessage(text, 'me');
+            // обновляем UI из хранилища (mockApiSendMessage уже добавило в messagesDB)
+            await refreshMessagesUI();
+            messageInput.value = '';
+            messageInput.focus();
+        } catch (err) {
+            console.warn("Ошибка отправки:", err);
+            connectionSpan.innerHTML = '⚠️ сбой отправки';
+            setTimeout(() => { connectionSpan.innerHTML = '🟢 онлайн · API готов'; }, 2000);
+            alert("Не удалось отправить сообщение: " + err.message);
+        } finally {
+            sendButton.disabled = false;
+            sendButton.innerHTML = originalBtnText;
         }
     }
     
-    function stopAnimation() {
-        if (window.running) {
-            window.running = false;
-            addOutput('⏹ Анимация остановлена', 'info');
-            statusSpan.innerText = 'Остановлено';
-        }
-        ctx.fillStyle = '#0a0c12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    
-    function clearCircles() {
-        if (typeof window.circlesCount !== 'undefined') {
-            window.circlesCount = 0;
-            addOutput('🗑 Все круги очищены', 'info');
-        }
-    }
-    
-    function closeWindow() {
-        if (window.running) {
-            window.running = false;
-        }
-        document.getElementById('animationWindow').classList.remove('show');
-        document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = 'Закрыто';
-        addOutput('❌ Окно закрыто, цикл остановлен', 'info');
-        ctx.fillStyle = '#0a0c12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    
-    function saveHTML() {
-        const currentCode = codeArea.value;
-        const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>OpenGL Program</title>
-<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;}</style>
-</head>
-<body>
-<canvas id="c"></canvas>
-<script>
-const canvas=document.getElementById('c');
-const ctx=canvas.getContext('2d');
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
-resize();onresize=resize;
-let scale=Math.min(canvas.width,canvas.height)/400;
-let offX=(canvas.width-400*scale)/2;
-let offY=(canvas.height-400*scale)/2;
-function tx(x){return offX+x*scale;}
-function ty(y){return offY+y*scale;}
-let color={r:1,g:1,b:1};
-let verts=[];
-let mode=null;
-function drawQuads(){
-    for(let i=0;i<=verts.length-4;i+=4){
-        ctx.beginPath();
-        ctx.moveTo(tx(verts[i].x),ty(verts[i].y));
-        ctx.lineTo(tx(verts[i+1].x),ty(verts[i+1].y));
-        ctx.lineTo(tx(verts[i+2].x),ty(verts[i+2].y));
-        ctx.lineTo(tx(verts[i+3].x),ty(verts[i+3].y));
-        ctx.fillStyle=\`rgb(\${color.r*255},\${color.g*255},\${color.b*255})\`;
-        ctx.fill();
-    }
-}
-function drawTriangleFan(){
-    if(verts.length<2)return;
-    let first=verts[0];
-    for(let i=1;i<verts.length-1;i++){
-        ctx.beginPath();
-        ctx.moveTo(tx(first.x),ty(first.y));
-        ctx.lineTo(tx(verts[i].x),ty(verts[i].y));
-        ctx.lineTo(tx(verts[i+1].x),ty(verts[i+1].y));
-        ctx.fillStyle=\`rgb(\${color.r*255},\${color.g*255},\${color.b*255})\`;
-        ctx.fill();
-    }
-}
-function flush(){
-    if(verts.length===0)return;
-    if(mode==='GL_QUADS')drawQuads();
-    else if(mode==='GL_TRIANGLE_FAN')drawTriangleFan();
-    verts=[];
-}
-window.glColor3f=(r,g,b)=>{color={r,g,b};};
-window.glVertex3f=(x,y,z)=>{verts.push({x,y});};
-window.glBegin=(m)=>{mode=m;verts=[];};
-window.glEnd=()=>{flush();mode=null;};
-window.glClear=()=>{
-    ctx.fillStyle='#0a0c12';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    scale=Math.min(canvas.width,canvas.height)/400;
-    offX=(canvas.width-400*scale)/2;
-    offY=(canvas.height-400*scale)/2;
-};
-window.delay=(ms)=>new Promise(r=>setTimeout(r,ms));
-window.cos=Math.cos;
-window.sin=Math.sin;
-
-function getCoords(e){
-    const rect=canvas.getBoundingClientRect();
-    const sx=canvas.width/rect.width;
-    const sy=canvas.height/rect.height;
-    let cx,cy;
-    if(e.touches){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}
-    else{cx=e.clientX;cy=e.clientY;}
-    let x=(cx-rect.left)*sx;
-    let y=(cy-rect.top)*sy;
-    x=Math.max(0,Math.min(canvas.width,x));
-    y=Math.max(0,Math.min(canvas.height,y));
-    return{ x:Math.floor(x), y:Math.floor(y) };
-}
-
-canvas.onclick=(e)=>{
-    const c=getCoords(e);
-    if(typeof onTap==='function')onTap(c.x,c.y);
-};
-canvas.ontouchstart=(e)=>{e.preventDefault();canvas.onclick(e);};
-
-let running=true;
-
-${convertCtoJS(currentCode).replace(/<\/script>/gi, '<\\/script>')}
-<\/script>
-</body>
-</html>`;
-        
-        const blob = new Blob([html], { type: 'text/html' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'c_opengl_program.html';
-        a.click();
-        URL.revokeObjectURL(blob);
-        addOutput('💾 Файл сохранен', 'success');
-    }
-    
-    document.getElementById('compileBtn').onclick = compileAndRun;
-    document.getElementById('saveBtn').onclick = saveHTML;
-    document.getElementById('closeBtn').onclick = closeWindow;
-    document.getElementById('stopBtn').onclick = stopAnimation;
-    document.getElementById('clearBtn').onclick = clearCircles;
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'F5') {
-            e.preventDefault();
-            compileAndRun();
+    // опционально: имитация "печатает" при наборе (на случай реального API)
+    let typingTimer;
+    messageInput.addEventListener('input', () => {
+        // здесь можно было бы отправить сигнал "печатает" на бэкенд через WebSocket или REST,
+        // но для mock API просто локальный эффект не будем спамить.
+        if (messageInput.value.length > 0) {
+            // дополнительная фича — не обязательна, но создаёт ощущение живого чата
         }
     });
     
-    let drag = false, dx, dy;
-    const win = document.getElementById('animationWindow');
-    const title = document.getElementById('titlebar');
-    title.onmousedown = (e) => {
-        drag = true;
-        dx = e.clientX - win.offsetLeft;
-        dy = e.clientY - win.offsetTop;
-    };
-    document.onmousemove = (e) => {
-        if (drag) {
-            win.style.left = (e.clientX - dx) + 'px';
-            win.style.top = (e.clientY - dy) + 'px';
-            win.style.transform = 'none';
+    // очистка чата (опционально) добавим секретную команду /clear или кнопку? Для полноты добавим кнопку в шапку?
+    // Добавим кнопку сброса диалога (для демонстрации работы API удаления). Но чтобы не перегружать интерфейс, сделаем скрытую команду "!clear"
+    // Пользователь может ввести !clear и очистить историю (локально, через API удаления)
+    async function processCommand(text) {
+        if (text === '!clear') {
+            if (confirm('Очистить всю историю сообщений? (локальный mock API)')) {
+                // имитируем удаление всех сообщений через DELETE batch? просто очистим БД
+                const allMsgs = await mockApiGetMessages();
+                for (let msg of allMsgs) {
+                    await mockApiDeleteMessage(msg.id);
+                }
+                await refreshMessagesUI();
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'message incoming';
+                infoDiv.innerHTML = `<div class="message-bubble">🧹 История очищена (mock API).</div><div class="message-meta">система</div>`;
+                messagesContainer.appendChild(infoDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            return true;
         }
-    };
-    document.onmouseup = () => { drag = false; };
+        // команда /help
+        if (text === '/help') {
+            const helpMsg = {
+                id: generateId(),
+                text: "📟 Доступные команды: !clear — очистить чат (локально). Всё остальное — обычные сообщения.\n💡 API эмулирует REST, вы можете подключить C-сервер, заменив mockApiGetMessages и mockApiSendMessage на fetch.",
+                sender: "other",
+                timestamp: Date.now()
+            };
+            messagesDB.push(helpMsg);
+            await refreshMessagesUI();
+            return true;
+        }
+        return false;
+    }
     
-    addOutput('✅ Умный компилятор готов!', 'success');
-    addOutput('📝 Теперь можно писать:', 'info');
-    addOutput('   void onTap(x, y)  - x и y автоматом параметры', 'info');
-    addOutput('   for(i = 0; i < 10; i++) - i автоматом объявится', 'info');
-    addOutput('   int x; float y; - объявления переменных', 'info');
-    addOutput('🎯 Нажми F5 для запуска', 'info');
+    // переопределяем отправку с учетом команд
+    async function handleSendOrCommand() {
+        let rawText = messageInput.value.trim();
+        if (rawText === "") return;
+        if (rawText.startsWith('!') || rawText === '/help') {
+            const isCommand = await processCommand(rawText);
+            if (isCommand) {
+                messageInput.value = "";
+                return;
+            }
+        }
+        // обычное сообщение
+        await sendMessageHandler();
+    }
+    
+    // инициализация событий
+    sendButton.addEventListener('click', handleSendOrCommand);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendOrCommand();
+        }
+    });
+    
+    // также добавим симуляцию получения "входящих сообщений" от других пользователей (random),
+    // но mockApiSendMessage уже эмулирует ответ бота с вероятностью 0.4, этого достаточно для демонстрации.
+    // дополнительная "живая" имитация: раз в 35 секунд присылаем активность от API (как будто кто-то написал)
+    let intervalSimulation = null;
+    function startBackgroundActivity() {
+        if (intervalSimulation) clearInterval(intervalSimulation);
+        intervalSimulation = setInterval(async () => {
+            // Только если нет активной печати и сообщений не слишком много, добавим случайное системное сообщение или "погода"
+            if (messagesDB.length < 40 && Math.random() > 0.65) {
+                const spontaneousMessages = [
+                    "☁️ API на C быстрее, чем кажется!",
+                    "📡 WebAssembly + C — мощная связка для чатов.",
+                    "🔌 Не забудь задеплоить бэкенд на GitHub?",
+                    "💡 Совет: используй Server-Sent Events для realtime."
+                ];
+                const randomMsg = spontaneousMessages[Math.floor(Math.random() * spontaneousMessages.length)];
+                const newBotMsg = {
+                    id: generateId(),
+                    text: randomMsg,
+                    sender: "other",
+                    timestamp: Date.now()
+                };
+                messagesDB.push(newBotMsg);
+                await refreshMessagesUI();
+                showTypingIndicator(true);
+                setTimeout(() => showTypingIndicator(false), 1500);
+            }
+        }, 28000);
+    }
+    
+    // загружаем историю при старте
+    window.addEventListener('DOMContentLoaded', async () => {
+        await refreshMessagesUI();
+        startBackgroundActivity();
+        // подсказка про C и рисование в HTML
+        console.log("✅ Мессенджер запущен. Чтобы интегрировать C-сервер, замените mockApiGetMessages/sendMessage на fetch к вашему API на C (libmicrohttpd, kore, etc.)");
+    });
+    
+    // экспорт для возможной отладки
+    window.__mockAPI = { mockApiGetMessages, mockApiSendMessage, refreshMessagesUI };
 </script>
 </body>
 </html>
