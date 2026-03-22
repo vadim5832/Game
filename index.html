@@ -69,10 +69,6 @@
             margin-top: 10px;
             font-size: 14px;
         }
-        @media (max-width: 500px) {
-            .score { font-size: 20px; }
-            button { padding: 8px 20px; font-size: 16px; }
-        }
     </style>
 </head>
 <body>
@@ -95,8 +91,7 @@
         if (window.Telegram && window.Telegram.WebApp) {
             tg = window.Telegram.WebApp;
             tg.ready();
-            tg.expand(); // разворачиваем на весь экран
-            tg.enableClosingConfirmation(); // подтверждение при закрытии
+            tg.expand();
         }
     } catch(e) { console.log("Not in Telegram"); }
 
@@ -111,32 +106,35 @@
 
     let snake = [{x: 10, y: 10}];
     let direction = {x: 0, y: 0};
-    let food = {};
+    let food = {x: 15, y: 15};
     let score = 0;
     let highScore = localStorage.getItem('snakeHighScore') || 0;
-    let gameLoop = null;
     let gameRunning = true;
 
     highScoreElement.textContent = highScore;
 
-    // Случайная еда
+    // Случайная еда (не на змее)
     function randomFood() {
-        food = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount)
-        };
-        // Проверка, чтобы еда не появилась на змее
-        for (let segment of snake) {
-            if (segment.x === food.x && segment.y === food.y) {
-                randomFood();
-                break;
+        let newFood;
+        let onSnake;
+        do {
+            onSnake = false;
+            newFood = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+            for (let segment of snake) {
+                if (segment.x === newFood.x && segment.y === newFood.y) {
+                    onSnake = true;
+                    break;
+                }
             }
-        }
+        } while (onSnake);
+        food = newFood;
     }
 
     // Отрисовка
     function draw() {
-        // Фон
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -144,7 +142,6 @@
         ctx.fillStyle = '#4c6ef5';
         for (let i = 0; i < snake.length; i++) {
             ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 1, gridSize - 1);
-            // Глазки у головы
             if (i === 0) {
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(snake[i].x * gridSize + 5, snake[i].y * gridSize + 5, 3, 3);
@@ -157,7 +154,7 @@
         ctx.fillStyle = '#ff6b6b';
         ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 1, gridSize - 1);
         
-        // Сетка (опционально)
+        // Сетка
         ctx.strokeStyle = '#1e2436';
         ctx.lineWidth = 0.5;
         for (let i = 0; i <= tileCount; i++) {
@@ -174,6 +171,8 @@
     // Обновление логики
     function update() {
         if (!gameRunning) return;
+        
+        if (direction.x === 0 && direction.y === 0) return;
         
         const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
         
@@ -201,11 +200,6 @@
                 highScore = score;
                 highScoreElement.textContent = highScore;
                 localStorage.setItem('snakeHighScore', highScore);
-                
-                // Отправляем рекорд в Telegram (опционально)
-                if (tg && score > 0) {
-                    tg.sendData(JSON.stringify({ type: 'new_record', score: score }));
-                }
             }
             randomFood();
         } else {
@@ -215,17 +209,9 @@
     
     function gameOver() {
         gameRunning = false;
-        if (gameLoop) clearInterval(gameLoop);
-        
-        // Показываем попап через Telegram
         if (tg) {
             tg.showAlert(`Игра окончена! Ваш счёт: ${score}`);
-            tg.HapticFeedback.notificationOccurred('error');
-        } else {
-            alert(`Игра окончена! Счёт: ${score}`);
         }
-        
-        // Останавливаем игру, показываем кнопку рестарта
     }
     
     function restartGame() {
@@ -235,11 +221,6 @@
         scoreElement.textContent = score;
         gameRunning = true;
         randomFood();
-        if (gameLoop) clearInterval(gameLoop);
-        gameLoop = setInterval(() => {
-            update();
-            draw();
-        }, 100);
     }
     
     // Управление с клавиатуры
@@ -253,7 +234,7 @@
         }
     });
     
-    // Поддержка свайпов для мобильных
+    // Свайпы для мобильных
     let touchStart = null;
     canvas.addEventListener('touchstart', (e) => {
         const rect = canvas.getBoundingClientRect();
@@ -288,17 +269,13 @@
     
     // Запуск игры
     randomFood();
-    gameLoop = setInterval(() => {
+    
+    // Игровой цикл
+    let gameLoop = setInterval(() => {
         update();
         draw();
-    }, 100);
     
-    // Отправляем в Telegram, что игра готова
-    if (tg) {
-        tg.ready();
-        tg.MainButton.setText("Играть");
-        tg.MainButton.show();
-    }
+    }, 100);
 </script>
 </body>
 </html>
