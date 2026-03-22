@@ -240,6 +240,18 @@ function drawBoard() {
     }
 }
 
+// Рисование круга
+function drawCircle(cx, cy, r, red, green, blue) {
+    glColor3f(red, green, blue);
+    glBegin("GL_TRIANGLE_FAN");
+    glVertex3f(cx, cy, 0);
+    for (let i = 0; i <= 36; i++) {
+        let angle = i * 10 * Math.PI / 180;
+        glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0);
+    }
+    glEnd();
+}
+
 // Рисование квадрата
 function drawSquare(cx, cy, size, red, green, blue) {
     glColor3f(red, green, blue);
@@ -258,7 +270,7 @@ let direction = 1;
 
 // Основной цикл анимации
 async function main() {
-    while (true) {
+    while (window.__animationRunning) {
         glClear();
         drawBoard();
         
@@ -274,14 +286,15 @@ async function main() {
         }
         
         // Рисуем два квадрата
-        drawSquare(posX - 45, 295, 30, 0.2, 0.4, 0.8);  // синий слева
-        drawSquare(posX + 35, 295, 30, 0.2, 0.8, 0.2);  // зеленый справа
+        drawSquare(posX - 45, 295, 30, 0.2, 0.4, 0.8);
+        drawSquare(posX + 35, 295, 30, 0.2, 0.8, 0.2);
         
         await delay(30);
     }
 }
 
 // Запускаем
+window.__animationRunning = true;
 main();</textarea>
         </div>
         <div class="output-panel">
@@ -315,6 +328,10 @@ main();</textarea>
     const outputDiv = document.getElementById('output');
     const statusSpan = document.getElementById('statusText');
     const codeArea = document.getElementById('code');
+    
+    // Глобальный флаг для остановки анимации
+    window.__animationRunning = false;
+    let currentEvalFunction = null;
     
     // ========== OpenGL эмуляция ==========
     let currentColor = { r: 1, g: 1, b: 1 };
@@ -398,7 +415,7 @@ main();</textarea>
         outputDiv.innerHTML = '';
     }
     
-    // Запуск пользовательского кода через eval
+    // Запуск пользовательского кода
     async function runUserCode() {
         const code = codeArea.value;
         
@@ -406,9 +423,20 @@ main();</textarea>
         addOutput("🚀 Запуск кода...", "info");
         
         try {
-            // Создаем функцию через new Function (работает везде)
+            // Останавливаем предыдущую анимацию если была
+            window.__animationRunning = false;
+            
+            // Даем время на остановку
+            await delay(100);
+            
+            // Устанавливаем флаг для новой анимации
+            window.__animationRunning = true;
+            
+            // Добавляем флаг в глобальную область видимости для кода пользователя
             const wrappedCode = `
                 (async function() {
+                    // Передаем флаг остановки
+                    window.__animationRunning = ${window.__animationRunning};
                     ${code}
                 })();
             `;
@@ -416,12 +444,13 @@ main();</textarea>
             const asyncFunc = new Function(wrappedCode);
             await asyncFunc();
             
-            addOutput("✅ Выполнение завершено", "success");
-            statusSpan.innerText = "Выполнение завершено";
+            addOutput("✅ Выполнение запущено", "success");
+            statusSpan.innerText = "Анимация работает";
         } catch (err) {
             addOutput(`❌ Ошибка: ${err.message}`, "error");
             statusSpan.innerText = "Ошибка выполнения";
             console.error(err);
+            window.__animationRunning = false;
         }
     }
     
@@ -433,19 +462,24 @@ main();</textarea>
         await runUserCode();
     }
     
-    // Остановка
+    // Остановка анимации
     function stopAnimation() {
-        addOutput("⏹ Анимация остановлена (обновите страницу для полной остановки)", "info");
-        statusSpan.innerText = "Остановлено";
+        window.__animationRunning = false;
+        addOutput("⏹ Анимация остановлена", "info");
+        statusSpan.innerText = "Анимация остановлена";
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
-    // Закрыть окно
+    // Закрыть окно - останавливаем анимацию
     function closeWindow() {
+        window.__animationRunning = false;
         document.getElementById('animationWindow').classList.remove('show');
         document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = "Окно закрыто";
+        statusSpan.innerText = "Окно закрыто, цикл остановлен";
+        addOutput("❌ Окно закрыто, цикл анимации остановлен", "info");
+        ctx.fillStyle = '#0a0c12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
     // Сохранить HTML
@@ -464,6 +498,8 @@ main();</textarea>
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    
+    let __animationRunning = true;
     
     function resize() {
         canvas.width = window.innerWidth;
@@ -534,6 +570,10 @@ main();</textarea>
         addOutput("💾 Файл сохранен как opengl_program.html", "success");
     }
     
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
     // Вешаем обработчики
     document.getElementById('compileBtn').onclick = compileAndRun;
     document.getElementById('saveBtn').onclick = saveHTML;
@@ -572,7 +612,7 @@ main();</textarea>
     
     addOutput("✅ OpenGL эмулятор готов", "success");
     addOutput("📝 Нажми F5 для запуска кода", "info");
-    addOutput("💡 Квадраты движутся, круга нет - убрал как ты просил", "info");
+    addOutput("💡 При закрытии окна цикл анимации останавливается", "info");
 </script>
 </body>
 </html>
