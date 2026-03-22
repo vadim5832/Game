@@ -3,28 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL - Анимация круга</title>
+    <title>OpenGL Compiler - CodeBlocks Style</title>
     <style>
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: #1a1e2c; margin: 0; padding: 20px; font-family: monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { max-width: 1200px; width: 100%; background: #0f1219; border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .row { display: flex; gap: 20px; flex-wrap: wrap; }
-        .editor-panel { flex: 2; min-width: 300px; }
-        .canvas-panel { flex: 1; min-width: 400px; text-align: center; }
-        textarea { width: 100%; height: 450px; background: #0a0c12; color: #4c6ef5; border: 1px solid #2a2f3f; border-radius: 12px; padding: 12px; font-family: monospace; font-size: 13px; resize: vertical; }
-        canvas { background: #0a0c12; border-radius: 12px; box-shadow: 0 0 0 2px #2a2f3f; width: 100%; height: auto; cursor: crosshair; }
-        button { background: #4c6ef5; border: none; color: white; font-size: 18px; font-weight: bold; padding: 10px 25px; border-radius: 40px; margin-top: 15px; cursor: pointer; width: 100%; }
-        button:active { transform: scale(0.97); background: #3b5bdb; }
-        .output { background: #0a0c12; color: #a0a4b8; border-radius: 12px; padding: 10px; margin-top: 15px; font-family: monospace; font-size: 12px; max-height: 100px; overflow-y: auto; text-align: left; }
-        .copy-btn { background: #2a2f3f; margin-top: 8px; font-size: 14px; padding: 6px 12px; width: auto; }
-        .error-line { color: #ff6b6b; white-space: pre-wrap; }
-        .status { color: #a0a4b8; margin-top: 10px; font-size: 12px; text-align: center; }
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #2d2d30;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', 'Consolas', monospace;
+            min-height: 100vh;
+        }
+        
+        .ide-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .toolbar {
+            background: #2d2d30;
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .toolbar button {
+            background: #0e639c;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: monospace;
+        }
+        
+        .toolbar button:hover {
+            background: #1177bb;
+            transform: scale(1.02);
+        }
+        
+        .toolbar button:active {
+            transform: scale(0.98);
+        }
+        
+        .status-bar {
+            background: #007acc;
+            color: white;
+            padding: 4px 15px;
+            font-size: 12px;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 0;
+            min-height: 550px;
+        }
+        
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #3e3e42;
+        }
+        
+        .panel-header {
+            background: #252526;
+            padding: 8px 15px;
+            color: #cccccc;
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #3e3e42;
+            font-family: monospace;
+        }
+        
+        textarea {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+        
+        .output-panel {
+            width: 350px;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .output-area {
+            flex: 1;
+            background: #1e1e1e;
+            color: #cccccc;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .error-text { color: #f48771; }
+        .success-text { color: #6a9955; }
+        .info-text { color: #9cdcfe; }
+        
+        /* Окно анимации */
+        .animation-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d30;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            z-index: 1000;
+            min-width: 450px;
+            border: 2px solid #4c6ef5;
+            display: none;
+        }
+        
+        .animation-window.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -48%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        
+        .window-titlebar {
+            background: #3e3e42;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 10px 10px 0 0;
+            cursor: move;
+        }
+        
+        .window-title {
+            color: white;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .window-close {
+            background: #e81123;
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .window-close:hover {
+            background: #f14c4c;
+        }
+        
+        .window-content {
+            padding: 20px;
+            background: #0a0c12;
+            border-radius: 0 0 12px 12px;
+            text-align: center;
+        }
+        
+        .animation-canvas {
+            background: #0a0c12;
+            border-radius: 8px;
+            box-shadow: 0 0 0 2px #4c6ef5;
+            width: 400px;
+            height: 400px;
+        }
+        
+        .window-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .window-controls button {
+            background: #4c6ef5;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .window-controls button:hover {
+            background: #3b5bdb;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row">
+<div class="ide-container">
+    <div class="toolbar">
+        <button id="compileBtn">▶ Компилировать и запустить (F5)</button>
+    </div>
+    <div class="status-bar">
+        <span>📁 OpenGL Project</span>
+        <span id="statusText">Готов к компиляции</span>
+    </div>
+    <div class="main-content">
         <div class="editor-panel">
+            <div class="panel-header">📝 Редактор кода (C-подобный синтаксис)</div>
             <textarea id="code">// Шахматная доска
 void drawBoard() {
     int x;
@@ -87,57 +309,66 @@ while (1) {
     delay(30);
 }</textarea>
         </div>
-        <div class="canvas-panel">
-            <canvas id="canvas" width="400" height="400"></canvas>
-            <button id="runBtn">▶ Запустить код</button>
-            <div class="output" id="output">Нажмите "Запустить"</div>
-            <button id="copyErrorsBtn" class="copy-btn">📋 Копировать ошибки</button>
+        <div class="output-panel">
+            <div class="panel-header">📟 Вывод компиляции</div>
+            <div class="output-area" id="output">
+                > Готов к компиляции<br>
+                > Нажмите "Компилировать и запустить" (F5)
+            </div>
         </div>
     </div>
-    <div class="status">🔴 Меняй speed в коде, нажимай "Запустить" — скорость сразу меняется</div>
+</div>
+
+<!-- Отдельное окно анимации -->
+<div class="overlay" id="overlay"></div>
+<div class="animation-window" id="animationWindow">
+    <div class="window-titlebar" id="windowTitlebar">
+        <span class="window-title">🎮 OpenGL Анимация [RUNNING]</span>
+        <button class="window-close" id="windowCloseBtn">✕</button>
+    </div>
+    <div class="window-content">
+        <canvas id="animationCanvas" width="400" height="400" class="animation-canvas"></canvas>
+        <div class="window-controls">
+            <button id="stopAnimBtn">⏹ Остановить</button>
+            <button id="restartAnimBtn">🔄 Перезапустить</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    let tg = window.Telegram?.WebApp;
-    if (tg) { tg.ready(); tg.expand(); }
-
-    const canvas = document.getElementById('canvas');
+    // Элементы
+    const compileBtn = document.getElementById('compileBtn');
+    const animationWindow = document.getElementById('animationWindow');
+    const overlay = document.getElementById('overlay');
+    const windowCloseBtn = document.getElementById('windowCloseBtn');
+    const stopAnimBtn = document.getElementById('stopAnimBtn');
+    const restartAnimBtn = document.getElementById('restartAnimBtn');
+    const canvas = document.getElementById('animationCanvas');
     const ctx = canvas.getContext('2d');
-    const codeArea = document.getElementById('code');
     const outputDiv = document.getElementById('output');
-    const copyErrorsBtn = document.getElementById('copyErrorsBtn');
-    let errors = [];
-    let currentAnimation = null;
-    let shouldStop = false;
-
-    function clearOutput() { 
-        outputDiv.innerHTML = ''; 
-        errors = []; 
-    }
+    const statusText = document.getElementById('statusText');
+    const codeArea = document.getElementById('code');
     
-    function addError(msg) { 
-        errors.push(msg); 
-        outputDiv.innerHTML += `<div class="error-line">⚠️ ${escapeHtml(msg)}</div>`; 
-    }
+    // Переменные анимации
+    let animationRunning = false;
+    let stopAnimationFlag = false;
+    let animationPromise = null;
     
-    function addSuccess(msg) {
-        outputDiv.innerHTML += `<div style="color: #6cff8e;">✅ ${escapeHtml(msg)}</div>`;
-    }
+    // Параметры анимации (берутся из кода)
+    let posX = 50.0;
+    let direction = 1;
+    let currentSpeed = 3.0;
     
-    function escapeHtml(str) { 
-        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); 
-    }
-
     // GL контекст
     let currentColor = { r: 1, g: 1, b: 1 };
     let vertices = [];
     let currentMode = null;
     let inBegin = false;
-
+    
     function rgbToStyle(r,g,b) { 
         return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`; 
     }
-
+    
     function drawTriangles() {
         if (vertices.length < 3) return;
         for (let i = 0; i <= vertices.length - 3; i += 3) {
@@ -150,7 +381,7 @@ while (1) {
             ctx.fill();
         }
     }
-
+    
     function drawQuads() {
         if (vertices.length < 4) return;
         for (let i = 0; i <= vertices.length - 4; i += 4) {
@@ -164,7 +395,7 @@ while (1) {
             ctx.fill();
         }
     }
-
+    
     function drawTriangleFan() {
         if (vertices.length < 2) return;
         let first = vertices[0];
@@ -178,7 +409,7 @@ while (1) {
             ctx.fill();
         }
     }
-
+    
     function flush() {
         if (vertices.length === 0) return;
         switch(currentMode) {
@@ -188,7 +419,7 @@ while (1) {
         }
         vertices = [];
     }
-
+    
     const gl = {
         glColor3f: (r,g,b) => { currentColor = { r, g, b }; },
         glVertex3f: (x,y,z) => { 
@@ -212,116 +443,208 @@ while (1) {
             ctx.fillRect(0, 0, canvas.width, canvas.height); 
         }
     };
-
+    
     function delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-
-    // Компилятор
-    async function runCode(code) {
-        // Останавливаем старую анимацию
-        if (currentAnimation) {
-            shouldStop = true;
-            await delay(100);
-        }
-        
-        shouldStop = false;
-        clearOutput();
-        gl.glClear();
-        
-        currentColor = { r: 1, g: 1, b: 1 };
-        vertices = [];
-        inBegin = false;
-        currentMode = null;
-        
-        let jsCode = code;
-        
-        // Убираем комментарии
-        jsCode = jsCode.replace(/\/\/[^\n]*/g, '');
-        
-        // Функции
-        jsCode = jsCode.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, (match, name, params) => {
-            let cleanParams = params.split(',').map(p => {
-                p = p.trim();
-                if (!p) return '';
-                let parts = p.split(/\s+/);
-                return parts[parts.length - 1];
-            }).filter(p => p).join(', ');
-            return `function ${name}(${cleanParams}) {`;
-        });
-        
-        // Переменные
-        jsCode = jsCode.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $2 =');
-        jsCode = jsCode.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $2;');
-        
-        // for
-        jsCode = jsCode.replace(/for\s*\(\s*(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'for (let $2 =');
-        
-        // Инкремент
-        jsCode = jsCode.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*\+\s*1/g, '$1++');
-        jsCode = jsCode.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*-\s*1/g, '$1--');
-        
-        // while
-        jsCode = jsCode.replace(/while\s*\(\s*1\s*\)/g, 'while (true)');
-        
-        // delay
-        jsCode = jsCode.replace(/delay\s*\(\s*(\d+)\s*\)\s*;/g, 'await delay($1);');
-        
-        // GL константы
-        jsCode = jsCode.replace(/\bGL_TRIANGLES\b/g, '"GL_TRIANGLES"');
-        jsCode = jsCode.replace(/\bGL_QUADS\b/g, '"GL_QUADS"');
-        jsCode = jsCode.replace(/\bGL_TRIANGLE_FAN\b/g, '"GL_TRIANGLE_FAN"');
-        
-        // GL функции
-        jsCode = jsCode.replace(/\bglColor3f\s*\(/g, 'gl.glColor3f(');
-        jsCode = jsCode.replace(/\bglVertex3f\s*\(/g, 'gl.glVertex3f(');
-        jsCode = jsCode.replace(/\bglBegin\s*\(/g, 'gl.glBegin(');
-        jsCode = jsCode.replace(/\bglEnd\s*\(/g, 'gl.glEnd(');
-        jsCode = jsCode.replace(/\bglClear\s*\(/g, 'gl.glClear(');
-        
-        // Математика
-        jsCode = jsCode.replace(/\bcos\s*\(/g, 'Math.cos(');
-        jsCode = jsCode.replace(/\bsin\s*\(/g, 'Math.sin(');
-        
-        // Добавляем проверку на остановку
-        jsCode = `(async function() {
-            let shouldStop = false;
-            const checkStop = () => { if (window.__shouldStop) throw new Error("STOP"); };
-            ${jsCode}
-        })()`;
-        
-        try {
-            window.__shouldStop = false;
-            const func = new Function('gl', 'delay', 'Math', 'window', jsCode);
-            currentAnimation = func(gl, delay, Math, window);
-            await currentAnimation;
-            if (!shouldStop) {
-                addSuccess("✅ Анимация запущена! Меняй speed в коде и жми Запустить");
-            }
-        } catch (e) {
-            if (e.message !== "STOP") {
-                addError("Ошибка: " + e.message);
+    
+    // Встроенные функции рисования
+    function drawBoard() {
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                if ((x + y) % 2 === 0) {
+                    gl.glColor3f(0.2, 0.2, 0.2);
+                } else {
+                    gl.glColor3f(0.9, 0.9, 0.9);
+                }
+                gl.glBegin('GL_QUADS');
+                gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glEnd();
             }
         }
     }
-
-    document.getElementById('runBtn').addEventListener('click', async () => {
-        await runCode(codeArea.value);
-    });
     
-    copyErrorsBtn.addEventListener('click', () => {
-        if (errors.length === 0) {
-            alert('✅ Нет ошибок!');
+    function drawCircle(cx, cy, r, red, green, blue) {
+        gl.glColor3f(red, green, blue);
+        gl.glBegin('GL_TRIANGLE_FAN');
+        gl.glVertex3f(cx, cy, 0.0);
+        for (let i = 0; i <= 36; i++) {
+            let angle = i * 10.0 * Math.PI / 180.0;
+            gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
+        }
+        gl.glEnd();
+    }
+    
+    // Основная анимация
+    async function runAnimation() {
+        stopAnimationFlag = false;
+        posX = 50.0;
+        direction = 1;
+        
+        while (!stopAnimationFlag) {
+            gl.glClear();
+            drawBoard();
+            
+            posX = posX + currentSpeed * direction;
+            
+            if (posX > 350.0) {
+                posX = 350.0;
+                direction = -1;
+            }
+            if (posX < 50.0) {
+                posX = 50.0;
+                direction = 1;
+            }
+            
+            drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+            await delay(30);
+        }
+    }
+    
+    // Запуск анимации
+    async function startAnimation() {
+        if (animationRunning) {
+            stopAnimationFlag = true;
+            if (animationPromise) await animationPromise;
+        }
+        animationRunning = true;
+        stopAnimationFlag = false;
+        animationPromise = runAnimation();
+        await animationPromise;
+        animationRunning = false;
+    }
+    
+    // Полная остановка анимации
+    async function stopAnimationCompletely() {
+        stopAnimationFlag = true;
+        if (animationPromise) {
+            await animationPromise;
+            animationPromise = null;
+        }
+        animationRunning = false;
+    }
+    
+    // Показать окно и запустить анимацию
+    async function showWindow() {
+        await stopAnimationCompletely();
+        animationWindow.classList.add('show');
+        overlay.classList.add('show');
+        await startAnimation();
+        statusText.innerText = "Анимация запущена";
+        addOutput("✅ Анимация запущена в отдельном окне", "success");
+    }
+    
+    // Закрыть окно и остановить анимацию
+    async function closeWindow() {
+        await stopAnimationCompletely();
+        animationWindow.classList.remove('show');
+        overlay.classList.remove('show');
+        statusText.innerText = "Окно анимации закрыто";
+        addOutput("❌ Окно анимации закрыто, цикл остановлен", "info");
+    }
+    
+    // Перезапуск
+    async function restartAnimation() {
+        await stopAnimationCompletely();
+        await startAnimation();
+        addOutput("🔄 Анимация перезапущена", "success");
+    }
+    
+    function addOutput(msg, type = "info") {
+        const colors = { error: "error-text", success: "success-text", info: "info-text" };
+        outputDiv.innerHTML += `<div class="${colors[type]}">> ${escapeHtml(msg)}</div>`;
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+    
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    function clearOutput() {
+        outputDiv.innerHTML = '';
+    }
+    
+    // Компиляция и запуск
+    async function compileAndRun() {
+        clearOutput();
+        addOutput("🔨 Компиляция...", "info");
+        statusText.innerText = "Компиляция...";
+        
+        const code = codeArea.value;
+        
+        // Парсим скорость из кода
+        const speedMatch = code.match(/speed\s*=\s*([\d.]+)\s*;/);
+        if (speedMatch) {
+            currentSpeed = parseFloat(speedMatch[1]);
+            addOutput(`⚡ Загружена скорость: ${currentSpeed}`, "info");
+        }
+        
+        if (code.includes("while") && code.includes("delay")) {
+            addOutput("✅ Компиляция успешна! Запускаю анимацию...", "success");
+            statusText.innerText = "Компиляция успешна";
+            await showWindow();
         } else {
-            navigator.clipboard.writeText(errors.join('\n'));
-            alert(`📋 Скопировано ${errors.length} ошибок`);
+            addOutput("⚠️ Ошибка: в коде нет цикла while(1) или delay()", "error");
+            statusText.innerText = "Ошибка компиляции";
+        }
+    }
+    
+    // События
+    compileBtn.addEventListener('click', compileAndRun);
+    windowCloseBtn.addEventListener('click', closeWindow);
+    stopAnimBtn.addEventListener('click', async () => {
+        await stopAnimationCompletely();
+        addOutput("⏹ Анимация остановлена", "info");
+        statusText.innerText = "Анимация остановлена";
+    });
+    restartAnimBtn.addEventListener('click', restartAnimation);
+    
+    // Закрытие по клику на оверлей
+    overlay.addEventListener('click', closeWindow);
+    
+    // Горячая клавиша F5
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            compileAndRun();
         }
     });
     
-    // Автозапуск
-    setTimeout(() => {
-        runCode(codeArea.value);
-    }, 500);
+    // Перетаскивание окна
+    let isDragging = false;
+    let dragOffsetX, dragOffsetY;
+    const titlebar = document.getElementById('windowTitlebar');
+    
+    titlebar.addEventListener('mousedown', (e) => {
+        if (e.target === titlebar || e.target.parentElement === titlebar) {
+            isDragging = true;
+            dragOffsetX = e.clientX - animationWindow.offsetLeft;
+            dragOffsetY = e.clientY - animationWindow.offsetTop;
+            animationWindow.style.cursor = 'grabbing';
+        }
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            animationWindow.style.left = (e.clientX - dragOffsetX) + 'px';
+            animationWindow.style.top = (e.clientY - dragOffsetY) + 'px';
+            animationWindow.style.transform = 'none';
+        }
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        animationWindow.style.cursor = '';
+    });
+    
+    addOutput("🎮 OpenGL Compiler готов (как CodeBlocks)", "success");
+    addOutput("📌 Нажмите F5 или кнопку 'Компилировать и запустить'", "info");
+    addOutput("📌 Окно анимации можно перетаскивать", "info");
+    addOutput("📌 При закрытии окна цикл полностью останавливается", "info");
+    addOutput("📌 Меняй speed в коде и жми F5 — скорость обновится", "info");
 </script>
 </body>
 </html>
