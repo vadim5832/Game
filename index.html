@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL - Просто работай</title>
+    <title>OpenGL - Работает</title>
     <style>
         * {
             user-select: none;
@@ -130,6 +130,10 @@
             cursor: move;
         }
         
+        .window-title {
+            color: white;
+        }
+        
         .window-close {
             background: #e81123;
             border: none;
@@ -163,6 +167,15 @@
         
         .overlay.show {
             display: block;
+        }
+        
+        .coords-box {
+            margin-top: 10px;
+            color: #4c6ef5;
+            font-family: monospace;
+            background: #1e1e1e;
+            padding: 5px;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -226,10 +239,9 @@ let posX = 50;
 let speed = 3;
 let direction = 1;
 
-// ===== ЭТА ФУНКЦИЯ ВЫЗЫВАЕТСЯ ПРИ НАЖАТИИ НА ЭКРАН =====
-// МОЖЕШЬ МЕНЯТЬ КАК ХОЧЕШЬ!
+// ===== ФУНКЦИЯ ПРИ НАЖАТИИ =====
 function onTap(x, y) {
-    // Например рисуем желтый круг где нажали
+    // Рисуем желтый круг где нажали
     drawCircle(x, y, 15, 1, 1, 0);
 }
 
@@ -271,14 +283,14 @@ animate();</textarea>
 <div class="overlay" id="overlay"></div>
 <div class="animation-window" id="animationWindow">
     <div class="window-titlebar" id="titlebar">
-        <span>Анимация</span>
+        <span class="window-title">🎮 Анимация</span>
         <button class="window-close" id="closeBtn">✕</button>
     </div>
     <div class="window-content">
         <canvas id="canvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div style="margin-top: 10px; color: #4c6ef5;" id="coordsText">👆 Нажми</div>
+        <div class="coords-box" id="coordsText">👆 Нажми на поле - нарисуется круг</div>
         <div style="margin-top: 10px;">
-            <button id="stopBtn">⏹ Стоп</button>
+            <button id="stopBtn">⏹ Остановить</button>
         </div>
     </div>
 </div>
@@ -370,10 +382,10 @@ animate();</textarea>
     function onCanvasClick(e) {
         e.preventDefault();
         const c = getCoords(e);
-        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y}`;
+        coordsText.innerHTML = `👆 Нажатие: X=${c.x}, Y=${c.y} - нарисован желтый круг`;
         addOutput(`Нажатие: X=${c.x}, Y=${c.y}`, 'click');
         
-        // Вызываем пользовательскую функцию onTap если есть
+        // Вызываем пользовательскую функцию onTap
         if (typeof window.onTap === 'function') {
             try {
                 window.onTap(c.x, c.y);
@@ -382,19 +394,21 @@ animate();</textarea>
             }
         }
         
-        // Визуальный фидбек
+        // Визуальный фидбек - желтая точка
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(c.x, c.y, 5, 0, 2 * Math.PI);
         ctx.fill();
-        setTimeout(() => {}, 100);
+        
+        setTimeout(() => {
+            // Не стираем, просто даем мигнуть
+        }, 100);
     }
     
     canvas.addEventListener('click', onCanvasClick);
     canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onCanvasClick(e); });
     
     // Запуск кода
-    let currentAnimation = null;
     let runningFlag = false;
     
     async function runCode() {
@@ -405,10 +419,12 @@ animate();</textarea>
         
         try {
             // Останавливаем старую анимацию
-            if (window.running) window.running = false;
-            await delay(100);
+            if (window.running) {
+                window.running = false;
+                await delay(200);
+            }
             
-            // Создаем новую функцию
+            // Запускаем новую
             const func = new Function(`
                 window.running = true;
                 ${code}
@@ -416,7 +432,7 @@ animate();</textarea>
             
             func();
             
-            addOutput('✅ Запущено', 'success');
+            addOutput('✅ Запущено. Нажимай на поле - рисуются круги!', 'success');
             statusSpan.innerText = 'Работает';
         } catch(err) {
             addOutput(`❌ Ошибка: ${err.message}`, 'error');
@@ -432,18 +448,25 @@ animate();</textarea>
     }
     
     function stopAnim() {
-        if (window.running) window.running = false;
-        addOutput('⏹ Остановлено', 'info');
-        statusSpan.innerText = 'Остановлено';
+        if (window.running) {
+            window.running = false;
+            addOutput('⏹ Анимация остановлена', 'info');
+            statusSpan.innerText = 'Остановлено';
+        }
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
     function closeWindow() {
-        if (window.running) window.running = false;
+        if (window.running) {
+            window.running = false;
+        }
         document.getElementById('animationWindow').classList.remove('show');
         document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = 'Закрыто';
+        statusSpan.innerText = 'Окно закрыто, цикл остановлен';
+        addOutput('❌ Окно закрыто, цикл анимации остановлен', 'info');
+        ctx.fillStyle = '#0a0c12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
     function saveHTML() {
@@ -451,7 +474,7 @@ animate();</textarea>
         const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>OpenGL</title>
-<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;}</style>
+<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;cursor:crosshair;}</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -510,6 +533,32 @@ window.glClear=()=>{
 };
 window.delay=(ms)=>new Promise(r=>setTimeout(r,ms));
 
+function getCoords(e){
+    const rect=canvas.getBoundingClientRect();
+    const sx=canvas.width/rect.width;
+    const sy=canvas.height/rect.height;
+    let cx,cy;
+    if(e.touches){cx=e.touches[0].clientX;cy=e.touches[0].clientY;}
+    else{cx=e.clientX;cy=e.clientY;}
+    let x=(cx-rect.left)*sx;
+    let y=(cy-rect.top)*sy;
+    x=Math.max(0,Math.min(canvas.width,x));
+    y=Math.max(0,Math.min(canvas.height,y));
+    return{ x:Math.floor(x), y:Math.floor(y) };
+}
+
+canvas.onclick=(e)=>{
+    const c=getCoords(e);
+    if(typeof onTap==='function')onTap(c.x,c.y);
+    ctx.fillStyle='yellow';
+    ctx.beginPath();
+    ctx.arc(tx(c.x),ty(c.y),5,0,2*Math.PI);
+    ctx.fill();
+};
+canvas.ontouchstart=(e)=>{e.preventDefault();canvas.onclick(e);};
+
+let running=true;
+
 // ТВОЙ КОД
 ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
 <\/script>
@@ -523,6 +572,10 @@ ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
         a.click();
         URL.revokeObjectURL(blob);
         addOutput('💾 Сохранено', 'success');
+    }
+    
+    function delay(ms) {
+        return new Promise(r => setTimeout(r, ms));
     }
     
     document.getElementById('compileBtn').onclick = compileAndRun;
@@ -555,9 +608,9 @@ ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
     };
     document.onmouseup = () => { drag = false; };
     
-    addOutput('Готов. Нажми F5', 'success');
-    addOutput('В коде есть функция onTap(x,y) - вызывается при нажатии', 'info');
-    addOutput('Меняй её как хочешь!', 'info');
+    addOutput('✅ Готов. Нажми F5', 'success');
+    addOutput('🎯 При нажатии на поле рисуется желтый круг', 'info');
+    addOutput('❌ При закрытии окна цикл останавливается', 'info');
 </script>
 </body>
 </html>
