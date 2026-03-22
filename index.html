@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL - Анимация круга (ИСПРАВЛЕНО)</title>
+    <title>OpenGL - Анимация круга (ФИНАЛ)</title>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #1a1e2c; margin: 0; padding: 20px; font-family: monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -18,7 +18,7 @@
         .output { background: #0a0c12; color: #a0a4b8; border-radius: 12px; padding: 10px; margin-top: 15px; font-family: monospace; font-size: 12px; max-height: 100px; overflow-y: auto; text-align: left; }
         .copy-btn { background: #2a2f3f; margin-top: 8px; font-size: 14px; padding: 6px 12px; width: auto; }
         .error-line { color: #ff6b6b; white-space: pre-wrap; }
-        .success-line { color: #6c8eff; white-space: pre-wrap; }
+        .success-line { color: #6cff8e; white-space: pre-wrap; }
         .status { color: #a0a4b8; margin-top: 10px; font-size: 12px; text-align: center; }
     </style>
 </head>
@@ -108,7 +108,8 @@ while (1) {
     const outputDiv = document.getElementById('output');
     const copyErrorsBtn = document.getElementById('copyErrorsBtn');
     let errors = [];
-    let stopAnimation = false;
+    let animationTimer = null;
+    let isAnimating = false;
 
     function clearOutput() { 
         outputDiv.innerHTML = ''; 
@@ -128,7 +129,7 @@ while (1) {
         return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); 
     }
 
-    // GL контекст
+    // GL контекст для рисования
     let currentColor = { r: 1, g: 1, b: 1 };
     let vertices = [];
     let currentMode = null;
@@ -219,350 +220,113 @@ while (1) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // Прямой интерпретатор C-подобного кода (без сложных regexp)
+    // Простой и надёжный препроцессор
+    function compileToJS(code) {
+        let js = code;
+        
+        // Удаляем комментарии
+        js = js.replace(/\/\/[^\n]*/g, '');
+        
+        // Преобразуем функции
+        js = js.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*{/g, 'function $1($2) {');
+        
+        // Преобразуем объявления переменных
+        js = js.replace(/\bint\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =');
+        js = js.replace(/\bfloat\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =');
+        js = js.replace(/\bint\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $1;');
+        js = js.replace(/\bfloat\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $1;');
+        
+        // Преобразуем for циклы
+        js = js.replace(/for\s*\(\s*int\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'for (let $1 =');
+        js = js.replace(/for\s*\(\s*float\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'for (let $1 =');
+        
+        // Инкремент/декремент
+        js = js.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*\+\s*1/g, '$1++');
+        js = js.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*-\s*1/g, '$1--');
+        
+        // while(1)
+        js = js.replace(/while\s*\(\s*1\s*\)/g, 'while (true)');
+        
+        // delay
+        js = js.replace(/delay\s*\(\s*(\d+)\s*\)\s*;/g, 'await delay($1);');
+        
+        // GL константы
+        js = js.replace(/\bGL_TRIANGLES\b/g, '"GL_TRIANGLES"');
+        js = js.replace(/\bGL_QUADS\b/g, '"GL_QUADS"');
+        js = js.replace(/\bGL_TRIANGLE_FAN\b/g, '"GL_TRIANGLE_FAN"');
+        
+        // GL функции
+        js = js.replace(/\b(glColor3f|glVertex3f|glBegin|glEnd|glClear)\s*\(/g, 'gl.$1(');
+        
+        // Математика
+        js = js.replace(/\bcos\s*\(/g, 'Math.cos(');
+        js = js.replace(/\bsin\s*\(/g, 'Math.sin(');
+        js = js.replace(/\bsqrt\s*\(/g, 'Math.sqrt(');
+        js = js.replace(/\bPI\b/g, 'Math.PI');
+        
+        // Оборачиваем в асинхронную функцию
+        js = `(async function() {
+            ${js}
+        })()`;
+        
+        return js;
+    }
+
+    let currentAnimation = null;
+    
     async function runCode(code) {
-        stopAnimation = true;
-        await delay(50);
-        stopAnimation = false;
+        // Останавливаем предыдущую анимацию
+        if (currentAnimation) {
+            isAnimating = false;
+            await delay(100);
+        }
         
         clearOutput();
         gl.glClear();
         
+        // Сброс состояния
         currentColor = { r: 1, g: 1, b: 1 };
         vertices = [];
         inBegin = false;
         currentMode = null;
+        isAnimating = true;
         
-        // Создаём окружение для переменных
-        const vars = {};
-        const functions = {};
-        
-        // Разбиваем код на строки
-        const lines = code.split('\n');
-        
-        // Сначала собираем все функции
-        let i = 0;
-        while (i < lines.length) {
-            let line = lines[i].trim();
-            
-            // Пропускаем комментарии
-            if (line.startsWith('//')) {
-                i++;
-                continue;
-            }
-            
-            // Объявление функции
-            if (line.match(/^void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/)) {
-                const match = line.match(/^void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*{/);
-                if (match) {
-                    const funcName = match[1];
-                    const params = match[2].split(',').map(p => {
-                        const parts = p.trim().split(/\s+/);
-                        return parts[parts.length - 1];
-                    }).filter(p => p);
-                    
-                    // Находим тело функции
-                    let body = '';
-                    let braceCount = 1;
-                    i++;
-                    while (i < lines.length && braceCount > 0) {
-                        const currentLine = lines[i];
-                        body += currentLine + '\n';
-                        for (let ch of currentLine) {
-                            if (ch === '{') braceCount++;
-                            if (ch === '}') braceCount--;
-                        }
-                        i++;
-                    }
-                    
-                    // Сохраняем функцию
-                    functions[funcName] = { params, body: body.substring(0, body.lastIndexOf('}')) };
-                    continue;
-                }
-            }
-            i++;
-        }
-        
-        // Теперь выполняем основной код
-        const mainCode = [];
-        let inFunction = false;
-        
-        for (let line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('void ') && trimmed.includes('{')) {
-                inFunction = true;
-                continue;
-            }
-            if (inFunction) {
-                if (trimmed === '}' || trimmed.endsWith('}')) {
-                    inFunction = false;
-                }
-                continue;
-            }
-            if (trimmed && !trimmed.startsWith('//')) {
-                mainCode.push(line);
-            }
-        }
-        
-        // Выполняем основной код построчно
-        let idx = 0;
-        
-        // Вспомогательная функция для выполнения операторов
-        async function executeLine(line) {
-            line = line.trim();
-            if (!line || line.startsWith('//')) return true;
-            
-            // Объявление переменной int x;
-            if (line.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;$/)) {
-                const match = line.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;$/);
-                if (match && vars[match[2]] === undefined) {
-                    vars[match[2]] = 0;
-                }
-                return true;
-            }
-            
-            // Объявление с присваиванием int x = 5;
-            if (line.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/)) {
-                const match = line.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
-                if (match) {
-                    const value = evaluateExpression(match[3], vars);
-                    vars[match[2]] = value;
-                }
-                return true;
-            }
-            
-            // Присваивание x = 5;
-            if (line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/)) {
-                const match = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
-                if (match) {
-                    const value = evaluateExpression(match[2], vars);
-                    vars[match[1]] = value;
-                }
-                return true;
-            }
-            
-            // while (1) или while (true)
-            if (line.match(/^while\s*\(\s*1\s*\)\s*{$/)) {
-                let loopBody = '';
-                let braceCount = 1;
-                let j = 0;
-                // Находим тело цикла
-                while (idx + j < mainCode.length && braceCount > 0) {
-                    const nextLine = mainCode[idx + j];
-                    loopBody += nextLine + '\n';
-                    for (let ch of nextLine) {
-                        if (ch === '{') braceCount++;
-                        if (ch === '}') braceCount--;
-                    }
-                    j++;
-                }
-                // Выполняем цикл
-                while (!stopAnimation) {
-                    const lines2 = loopBody.split('\n');
-                    for (let line2 of lines2) {
-                        if (line2.trim() && !line2.trim().startsWith('//') && !line2.trim().startsWith('}')) {
-                            await executeLine(line2);
-                        }
-                    }
-                    await delay(10);
-                }
-                idx += j - 1;
-                return true;
-            }
-            
-            // Вызов функции
-            if (line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/)) {
-                const match = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*;$/);
-                if (match && functions[match[1]]) {
-                    const func = functions[match[1]];
-                    const args = match[2].split(',').map(a => evaluateExpression(a.trim(), vars));
-                    
-                    // Создаём локальные переменные
-                    const localVars = {};
-                    for (let p = 0; p < func.params.length; p++) {
-                        localVars[func.params[p]] = args[p];
-                    }
-                    
-                    // Выполняем тело функции
-                    const funcLines = func.body.split('\n');
-                    for (let fline of funcLines) {
-                        fline = fline.trim();
-                        if (!fline || fline.startsWith('//') || fline === '{' || fline === '}') continue;
-                        
-                        // Объявление локальных переменных
-                        if (fline.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;$/)) {
-                            const m = fline.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;$/);
-                            if (m && localVars[m[2]] === undefined) localVars[m[2]] = 0;
-                            continue;
-                        }
-                        if (fline.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/)) {
-                            const m = fline.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
-                            if (m) localVars[m[2]] = evaluateExpression(m[3], localVars);
-                            continue;
-                        }
-                        
-                        // Присваивание в функции
-                        if (fline.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/)) {
-                            const m = fline.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
-                            if (m) {
-                                const val = evaluateExpression(m[2], localVars);
-                                if (localVars[m[1]] !== undefined) localVars[m[1]] = val;
-                                else vars[m[1]] = val;
-                            }
-                            continue;
-                        }
-                        
-                        // gl вызовы в функции
-                        if (fline.match(/^gl[A-Z]/)) {
-                            await executeGL(fline, localVars);
-                            continue;
-                        }
-                        
-                        // for цикл в функции
-                        if (fline.startsWith('for')) {
-                            await executeFor(fline, localVars);
-                            continue;
-                        }
-                        
-                        // if условие
-                        if (fline.startsWith('if')) {
-                            await executeIf(fline, localVars);
-                            continue;
-                        }
-                    }
-                }
-                return true;
-            }
-            
-            // GL команды
-            if (line.match(/^gl[A-Z]/)) {
-                await executeGL(line, vars);
-                return true;
-            }
-            
-            // for цикл
-            if (line.startsWith('for')) {
-                await executeFor(line, vars);
-                return true;
-            }
-            
-            // if условие
-            if (line.startsWith('if')) {
-                await executeIf(line, vars);
-                return true;
-            }
-            
-            return true;
-        }
-        
-        async function executeGL(line, context) {
-            if (line.startsWith('glColor3f')) {
-                const match = line.match(/glColor3f\(([^,]+),([^,]+),([^)]+)\)/);
-                if (match) {
-                    gl.glColor3f(
-                        evaluateExpression(match[1], context),
-                        evaluateExpression(match[2], context),
-                        evaluateExpression(match[3], context)
-                    );
-                }
-            }
-            else if (line.startsWith('glVertex3f')) {
-                const match = line.match(/glVertex3f\(([^,]+),([^,]+),([^)]+)\)/);
-                if (match) {
-                    gl.glVertex3f(
-                        evaluateExpression(match[1], context),
-                        evaluateExpression(match[2], context),
-                        evaluateExpression(match[3], context)
-                    );
-                }
-            }
-            else if (line.startsWith('glBegin')) {
-                const match = line.match(/glBegin\(([^)]+)\)/);
-                if (match) gl.glBegin(match[1]);
-            }
-            else if (line.startsWith('glEnd')) {
-                gl.glEnd();
-            }
-            else if (line.startsWith('glClear')) {
-                gl.glClear();
-            }
-        }
-        
-        async function executeFor(line, context) {
-            const match = line.match(/for\s*\(\s*([^;]+);\s*([^;]+);\s*([^)]+)\)\s*{/);
-            if (match) {
-                const init = match[1].trim();
-                const condition = match[2].trim();
-                const increment = match[3].trim();
-                
-                // Инициализация
-                if (init.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)) {
-                    const m = init.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
-                    if (m) context[m[2]] = evaluateExpression(m[3], context);
-                } else if (init.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/)) {
-                    const m = init.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
-                    if (m) context[m[1]] = evaluateExpression(m[2], context);
-                }
-                
-                // Находим тело
-                let body = '';
-                let braceCount = 1;
-                let j = 0;
-                // ... упрощённо, для демо пропускаем
-            }
-        }
-        
-        async function executeIf(line, context) {
-            // Упрощённо для демо
-        }
-        
-        function evaluateExpression(expr, context) {
-            expr = expr.trim();
-            // Подставляем переменные
-            for (let key in context) {
-                const regex = new RegExp('\\b' + key + '\\b', 'g');
-                expr = expr.replace(regex, context[key]);
-            }
-            // Математические функции
-            expr = expr.replace(/cos\(([^)]+)\)/g, 'Math.cos($1)');
-            expr = expr.replace(/sin\(([^)]+)\)/g, 'Math.sin($1)');
-            expr = expr.replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)');
-            
-            try {
-                return eval(expr);
-            } catch(e) {
-                return 0;
-            }
-        }
-        
-        // Запускаем выполнение
         try {
-            while (idx < mainCode.length && !stopAnimation) {
-                const line = mainCode[idx];
-                await executeLine(line);
-                idx++;
+            const jsCode = compileToJS(code);
+            console.log("Скомпилированный код:", jsCode);
+            
+            // Создаём和执行
+            const func = new Function('gl', 'delay', 'Math', jsCode);
+            await func(gl, delay, Math);
+            
+            if (isAnimating) {
+                addSuccess("Анимация работает!");
             }
-            if (!stopAnimation) addSuccess("Анимация завершена");
-        } catch(e) {
-            addError(e.message);
+        } catch (e) {
+            addError("Ошибка: " + e.message);
+            console.error(e);
         }
     }
 
+    // Кнопка запуска
     document.getElementById('runBtn').addEventListener('click', async () => {
         await runCode(codeArea.value);
     });
     
+    // Копирование ошибок
     copyErrorsBtn.addEventListener('click', () => {
         if (errors.length === 0) {
-            alert('Нет ошибок! Круг бегает как надо 👍');
+            alert('✅ Нет ошибок! Всё работает отлично!');
         } else {
             navigator.clipboard.writeText(errors.join('\n'));
-            alert(`Скопировано ${errors.length} ошибок`);
+            alert(`📋 Скопировано ${errors.length} ошибок`);
         }
     });
     
     // Автозапуск
-    setTimeout(() => runCode(codeArea.value), 500);
+    setTimeout(() => {
+        runCode(codeArea.value);
+    }, 200);
 </script>
 </body>
 </html>
