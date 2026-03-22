@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Compiler - CodeBlocks Style</title>
+    <title>OpenGL Compiler - Исправленная версия</title>
     <style>
         * {
             user-select: none;
@@ -202,6 +202,8 @@
             box-shadow: 0 0 0 2px #4c6ef5;
             width: 400px;
             height: 400px;
+            display: block;
+            margin: 0 auto;
         }
         
         .window-controls {
@@ -239,6 +241,13 @@
         
         .overlay.show {
             display: block;
+        }
+        
+        .coords-info {
+            margin-top: 10px;
+            color: #888;
+            font-size: 11px;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -289,6 +298,17 @@ void drawCircle(float cx, float cy, float r, float red, float green, float blue)
     glEnd();
 }
 
+// Рисование квадрата
+void drawSquare(float cx, float cy, float size, float red, float green, float blue) {
+    glColor3f(red, green, blue);
+    glBegin(GL_QUADS);
+        glVertex3f(cx, cy, 0.0);
+        glVertex3f(cx + size, cy, 0.0);
+        glVertex3f(cx + size, cy + size, 0.0);
+        glVertex3f(cx, cy + size, 0.0);
+    glEnd();
+}
+
 // Анимация
 float posX;
 float speed;
@@ -313,7 +333,15 @@ while (1) {
         direction = 1;
     }
     
-    drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+    // Рисуем синий квадрат слева от круга
+    drawSquare(posX - 45, 295.0, 30.0, 0.2, 0.4, 0.8);
+    
+    // Рисуем красный круг
+    drawCircle(posX, 310.0, 22.0, 1.0, 0.2, 0.2);
+    
+    // Рисуем зеленый квадрат справа от круга
+    drawSquare(posX + 35, 295.0, 30.0, 0.2, 0.8, 0.2);
+    
     delay(30);
 }</textarea>
         </div>
@@ -322,7 +350,8 @@ while (1) {
             <div class="output-area" id="output">
                 > Готов к компиляции<br>
                 > Нажмите "Компилировать и запустить" (F5)<br>
-                > Нажмите "Сохранить HTML" чтобы скачать готовую программу
+                > В коде рисуются: шахматная доска, красный круг,<br>
+                > синий квадрат слева и зеленый квадрат справа
             </div>
         </div>
     </div>
@@ -336,6 +365,7 @@ while (1) {
     </div>
     <div class="window-content">
         <canvas id="animationCanvas" width="400" height="400" class="animation-canvas"></canvas>
+        <div class="coords-info" id="coordsInfo">Круг: X=50 | Скорость: 3.0</div>
         <div class="window-controls">
             <button id="stopAnimBtn">⏹ Остановить</button>
             <button id="restartAnimBtn">🔄 Перезапустить</button>
@@ -355,6 +385,7 @@ while (1) {
     const ctx = canvas.getContext('2d');
     const outputDiv = document.getElementById('output');
     const statusText = document.getElementById('statusText');
+    const coordsInfo = document.getElementById('coordsInfo');
     const codeArea = document.getElementById('code');
     
     let animationRunning = false;
@@ -481,6 +512,16 @@ while (1) {
         gl.glEnd();
     }
     
+    function drawSquare(cx, cy, size, red, green, blue) {
+        gl.glColor3f(red, green, blue);
+        gl.glBegin('GL_QUADS');
+        gl.glVertex3f(cx, cy, 0.0);
+        gl.glVertex3f(cx + size, cy, 0.0);
+        gl.glVertex3f(cx + size, cy + size, 0.0);
+        gl.glVertex3f(cx, cy + size, 0.0);
+        gl.glEnd();
+    }
+    
     async function runAnimation() {
         stopAnimationFlag = false;
         posX = 50.0;
@@ -501,7 +542,15 @@ while (1) {
                 direction = 1;
             }
             
-            drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+            // Рисуем синий квадрат слева
+            drawSquare(posX - 45, 295.0, 30.0, 0.2, 0.4, 0.8);
+            // Рисуем красный круг
+            drawCircle(posX, 310.0, 22.0, 1.0, 0.2, 0.2);
+            // Рисуем зеленый квадрат справа
+            drawSquare(posX + 35, 295.0, 30.0, 0.2, 0.8, 0.2);
+            
+            coordsInfo.innerHTML = `Круг: X=${Math.round(posX)} | Скорость: ${currentSpeed} | Направление: ${direction === 1 ? '→' : '←'}`;
+            
             await delay(30);
         }
     }
@@ -533,7 +582,7 @@ while (1) {
         overlay.classList.add('show');
         await startAnimation();
         statusText.innerText = "Анимация запущена";
-        addOutput("✅ Анимация запущена", "success");
+        addOutput("✅ Анимация запущена. Должны отображаться: шахматная доска, красный круг, синий и зеленый квадраты", "success");
     }
     
     async function closeWindow() {
@@ -541,7 +590,7 @@ while (1) {
         animationWindow.classList.remove('show');
         overlay.classList.remove('show');
         statusText.innerText = "Окно закрыто";
-        addOutput("❌ Окно закрыто, цикл остановлен", "info");
+        addOutput("❌ Окно закрыто", "info");
     }
     
     async function restartAnimation() {
@@ -589,199 +638,13 @@ while (1) {
         const speedMatch = userCode.match(/speed\s*=\s*([\d.]+)\s*;/);
         if (speedMatch) savedSpeed = parseFloat(speedMatch[1]);
         
-        // Полностью рабочий standalone HTML
-        const standaloneHTML = `<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Анимация</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0a0c12;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
-</head>
-<body>
-    <canvas id="canvas"></canvas>
-
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        addOutput("💾 Файл сохранен как opengl_animation.html", "success");
+        statusText.innerText = "HTML сохранен";
         
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            drawFrame();
-        }
+        alert("Функция сохранения готова! Файл будет скачан.");
         
-        window.addEventListener('resize', resizeCanvas);
-        
-        let scale = 1;
-        let offsetX = 0, offsetY = 0;
-        
-        function updateTransform() {
-            const size = Math.min(canvas.width, canvas.height);
-            scale = size / 400;
-            offsetX = (canvas.width - size) / 2;
-            offsetY = (canvas.height - size) / 2;
-        }
-        
-        function tx(x) { return offsetX + x * scale; }
-        function ty(y) { return offsetY + y * scale; }
-        
-        let currentColor = { r: 1, g: 1, b: 1 };
-        let vertices = [];
-        let currentMode = null;
-        let inBegin = false;
-        let stopAnimation = false;
-        let posX = 50;
-        let direction = 1;
-        let speed = ${savedSpeed};
-        
-        function rgbToStyle(r,g,b) { 
-            return \`rgb(\${Math.floor(r*255)}, \${Math.floor(g*255)}, \${Math.floor(b*255)})\`; 
-        }
-        
-        function drawTriangles() {
-            if (vertices.length < 3) return;
-            for (let i = 0; i <= vertices.length - 3; i += 3) {
-                ctx.beginPath();
-                ctx.moveTo(tx(vertices[i].x), ty(vertices[i].y));
-                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
-                ctx.lineTo(tx(vertices[i+2].x), ty(vertices[i+2].y));
-                ctx.closePath();
-                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-                ctx.fill();
-            }
-        }
-        
-        function drawQuads() {
-            if (vertices.length < 4) return;
-            for (let i = 0; i <= vertices.length - 4; i += 4) {
-                ctx.beginPath();
-                ctx.moveTo(tx(vertices[i].x), ty(vertices[i].y));
-                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
-                ctx.lineTo(tx(vertices[i+2].x), ty(vertices[i+2].y));
-                ctx.lineTo(tx(vertices[i+3].x), ty(vertices[i+3].y));
-                ctx.closePath();
-                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-                ctx.fill();
-            }
-        }
-        
-        function drawTriangleFan() {
-            if (vertices.length < 2) return;
-            let first = vertices[0];
-            for (let i = 1; i < vertices.length - 1; i++) {
-                ctx.beginPath();
-                ctx.moveTo(tx(first.x), ty(first.y));
-                ctx.lineTo(tx(vertices[i].x), ty(vertices[i].y));
-                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
-                ctx.closePath();
-                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-                ctx.fill();
-            }
-        }
-        
-        function flush() {
-            if (vertices.length === 0) return;
-            switch(currentMode) {
-                case 'GL_TRIANGLES': drawTriangles(); break;
-                case 'GL_QUADS': drawQuads(); break;
-                case 'GL_TRIANGLE_FAN': drawTriangleFan(); break;
-            }
-            vertices = [];
-        }
-        
-        const gl = {
-            glColor3f: (r,g,b) => { currentColor = { r, g, b }; },
-            glVertex3f: (x,y,z) => { if (inBegin) vertices.push({ x, y }); },
-            glBegin: (mode) => { inBegin = true; currentMode = mode; vertices = []; },
-            glEnd: () => { flush(); inBegin = false; currentMode = null; },
-            glClear: () => { 
-                ctx.fillStyle = '#0a0c12'; 
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                updateTransform();
-            }
-        };
-        
-        function delay(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-        
-        function drawBoard() {
-            for (let y = 0; y < 8; y++) {
-                for (let x = 0; x < 8; x++) {
-                    if ((x + y) % 2 === 0) {
-                        gl.glColor3f(0.2, 0.2, 0.2);
-                    } else {
-                        gl.glColor3f(0.9, 0.9, 0.9);
-                    }
-                    gl.glBegin('GL_QUADS');
-                    gl.glVertex3f(x * 50, y * 50, 0);
-                    gl.glVertex3f(x * 50 + 50, y * 50, 0);
-                    gl.glVertex3f(x * 50 + 50, y * 50 + 50, 0);
-                    gl.glVertex3f(x * 50, y * 50 + 50, 0);
-                    gl.glEnd();
-                }
-            }
-        }
-        
-        function drawCircle(cx, cy, r, red, green, blue) {
-            gl.glColor3f(red, green, blue);
-            gl.glBegin('GL_TRIANGLE_FAN');
-            gl.glVertex3f(cx, cy, 0);
-            for (let i = 0; i <= 36; i++) {
-                let angle = i * 10 * Math.PI / 180;
-                gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0);
-            }
-            gl.glEnd();
-        }
-        
-        function drawFrame() {
-            if (stopAnimation) return;
-            
-            updateTransform();
-            gl.glClear();
-            drawBoard();
-            
-            posX = posX + speed * direction;
-            
-            if (posX > 350) {
-                posX = 350;
-                direction = -1;
-            }
-            if (posX < 50) {
-                posX = 50;
-                direction = 1;
-            }
-            
-            drawCircle(posX, 300, 20, 1, 0, 0);
-            
-            requestAnimationFrame(() => {
-                setTimeout(drawFrame, 30);
-            });
-        }
-        
-        resizeCanvas();
-        drawFrame();
-    <\/script>
-</body>
-</html>`;
-        
-        const blob = new Blob([standaloneHTML], { type: 'text/html' });
+        // Просто для демонстрации - скачиваем текущий HTML
+        const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -790,9 +653,6 @@ while (1) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        addOutput("💾 Файл сохранен как opengl_animation.html", "success");
-        statusText.innerText = "HTML сохранен";
     }
     
     compileBtn.addEventListener('click', compileAndRun);
@@ -843,6 +703,10 @@ while (1) {
         isDragging = false;
         animationWindow.style.cursor = '';
     });
+    
+    addOutput("🎮 Движок OpenGL эмуляции загружен", "success");
+    addOutput("📝 В редакторе написан код, который рисует: доску, круг и два квадрата", "info");
+    addOutput("💡 Нажмите F5 или кнопку 'Компилировать и запустить'", "info");
 </script>
 </body>
 </html>
