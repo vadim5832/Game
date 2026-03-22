@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL - Работает</title>
+    <title>OpenGL - Редактируй что хочешь</title>
     <style>
         * {
             user-select: none;
@@ -130,10 +130,6 @@
             cursor: move;
         }
         
-        .window-title {
-            color: white;
-        }
-        
         .window-close {
             background: #e81123;
             border: none;
@@ -168,15 +164,6 @@
         .overlay.show {
             display: block;
         }
-        
-        .coords-box {
-            margin-top: 10px;
-            color: #4c6ef5;
-            font-family: monospace;
-            background: #1e1e1e;
-            padding: 5px;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -191,7 +178,7 @@
     </div>
     <div class="main-content">
         <div class="editor-panel">
-            <div class="panel-header">📝 Твой код (пиши что хочешь)</div>
+            <div class="panel-header">📝 Редактируй код - он выполняется при запуске</div>
             <textarea id="code">// Шахматная доска
 function drawBoard() {
     for (let y = 0; y < 8; y++) {
@@ -211,7 +198,6 @@ function drawBoard() {
     }
 }
 
-// Круг
 function drawCircle(cx, cy, r, red, green, blue) {
     glColor3f(red, green, blue);
     glBegin("GL_TRIANGLE_FAN");
@@ -223,7 +209,6 @@ function drawCircle(cx, cy, r, red, green, blue) {
     glEnd();
 }
 
-// Квадрат
 function drawSquare(cx, cy, size, red, green, blue) {
     glColor3f(red, green, blue);
     glBegin("GL_QUADS");
@@ -234,19 +219,15 @@ function drawSquare(cx, cy, size, red, green, blue) {
     glEnd();
 }
 
-// Переменные
 let posX = 50;
 let speed = 3;
 let direction = 1;
+let running = true;
 
-// ===== ФУНКЦИЯ ПРИ НАЖАТИИ =====
+// Функция при нажатии - МЕНЯЙ ЕЁ КАК ХОЧЕШЬ
 function onTap(x, y) {
-    // Рисуем желтый круг где нажали
     drawCircle(x, y, 15, 1, 1, 0);
 }
-
-// Анимация
-let running = true;
 
 async function animate() {
     while (running) {
@@ -275,7 +256,7 @@ animate();</textarea>
         </div>
         <div class="output-panel">
             <div class="panel-header">📟 Вывод</div>
-            <div class="output-area" id="output">> Готов. Нажми F5</div>
+            <div class="output-area" id="output">> Готов. Напиши свой код и нажми F5</div>
         </div>
     </div>
 </div>
@@ -283,20 +264,19 @@ animate();</textarea>
 <div class="overlay" id="overlay"></div>
 <div class="animation-window" id="animationWindow">
     <div class="window-titlebar" id="titlebar">
-        <span class="window-title">🎮 Анимация</span>
+        <span>🎮 Анимация</span>
         <button class="window-close" id="closeBtn">✕</button>
     </div>
     <div class="window-content">
         <canvas id="canvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div class="coords-box" id="coordsText">👆 Нажми на поле - нарисуется круг</div>
+        <div style="margin-top: 10px; color: #4c6ef5;" id="coordsText">👆 Нажми - рисуется круг</div>
         <div style="margin-top: 10px;">
-            <button id="stopBtn">⏹ Остановить</button>
+            <button id="stopBtn">⏹ Стоп</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Элементы
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const output = document.getElementById('output');
@@ -304,7 +284,6 @@ animate();</textarea>
     const codeArea = document.getElementById('code');
     const coordsText = document.getElementById('coordsText');
     
-    // OpenGL эмуляция
     let color = { r: 1, g: 1, b: 1 };
     let verts = [];
     let mode = null;
@@ -341,7 +320,6 @@ animate();</textarea>
         verts = [];
     }
     
-    // Глобальные функции для пользовательского кода
     window.glColor3f = (r,g,b) => { color = { r, g, b }; };
     window.glVertex3f = (x,y) => { verts.push({ x, y }); };
     window.glBegin = (m) => { mode = m; verts = []; };
@@ -352,14 +330,15 @@ animate();</textarea>
     };
     window.delay = (ms) => new Promise(r => setTimeout(r, ms));
     
-    // Вывод
     function addOutput(msg, type = 'info') {
         const cls = type === 'error' ? 'error-text' : (type === 'success' ? 'success-text' : 'info-text');
         output.innerHTML += `<div class="${cls}">> ${msg}</div>`;
         output.scrollTop = output.scrollHeight;
+        if (output.children.length > 50) {
+            output.removeChild(output.children[0]);
+        }
     }
     
-    // Отслеживание нажатий
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -382,57 +361,47 @@ animate();</textarea>
     function onCanvasClick(e) {
         e.preventDefault();
         const c = getCoords(e);
-        coordsText.innerHTML = `👆 Нажатие: X=${c.x}, Y=${c.y} - нарисован желтый круг`;
-        addOutput(`Нажатие: X=${c.x}, Y=${c.y}`, 'click');
+        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y} - круг нарисован`;
         
-        // Вызываем пользовательскую функцию onTap
         if (typeof window.onTap === 'function') {
             try {
                 window.onTap(c.x, c.y);
             } catch(err) {
-                addOutput(`Ошибка в onTap: ${err.message}`, 'error');
+                addOutput(`Ошибка: ${err.message}`, 'error');
             }
         }
         
-        // Визуальный фидбек - желтая точка
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(c.x, c.y, 5, 0, 2 * Math.PI);
         ctx.fill();
-        
-        setTimeout(() => {
-            // Не стираем, просто даем мигнуть
-        }, 100);
     }
     
     canvas.addEventListener('click', onCanvasClick);
     canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onCanvasClick(e); });
     
-    // Запуск кода
-    let runningFlag = false;
-    
-    async function runCode() {
-        const code = codeArea.value;
+    // ГЛАВНОЕ - выполняем ТЕКУЩИЙ код из редактора
+    async function runCurrentCode() {
+        const userCode = codeArea.value;
         
         output.innerHTML = '';
-        addOutput('Запуск...', 'info');
+        addOutput('Запуск твоего кода...', 'info');
         
         try {
-            // Останавливаем старую анимацию
             if (window.running) {
                 window.running = false;
                 await delay(200);
             }
             
-            // Запускаем новую
-            const func = new Function(`
+            const wrappedCode = `
                 window.running = true;
-                ${code}
-            `);
+                ${userCode}
+            `;
             
+            const func = new Function(wrappedCode);
             func();
             
-            addOutput('✅ Запущено. Нажимай на поле - рисуются круги!', 'success');
+            addOutput('✅ Запущено!', 'success');
             statusSpan.innerText = 'Работает';
         } catch(err) {
             addOutput(`❌ Ошибка: ${err.message}`, 'error');
@@ -444,13 +413,13 @@ animate();</textarea>
     async function compileAndRun() {
         document.getElementById('animationWindow').classList.add('show');
         document.getElementById('overlay').classList.add('show');
-        await runCode();
+        await runCurrentCode();
     }
     
-    function stopAnim() {
+    function stopAnimation() {
         if (window.running) {
             window.running = false;
-            addOutput('⏹ Анимация остановлена', 'info');
+            addOutput('⏹ Остановлено', 'info');
             statusSpan.innerText = 'Остановлено';
         }
         ctx.fillStyle = '#0a0c12';
@@ -463,8 +432,8 @@ animate();</textarea>
         }
         document.getElementById('animationWindow').classList.remove('show');
         document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = 'Окно закрыто, цикл остановлен';
-        addOutput('❌ Окно закрыто, цикл анимации остановлен', 'info');
+        statusSpan.innerText = 'Закрыто, цикл остановлен';
+        addOutput('❌ Окно закрыто, цикл остановлен', 'info');
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
@@ -474,7 +443,7 @@ animate();</textarea>
         const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>OpenGL</title>
-<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;cursor:crosshair;}</style>
+<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;}</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -482,7 +451,7 @@ animate();</textarea>
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
-resize();window.onresize=resize;
+resize();onresize=resize;
 let scale=Math.min(canvas.width,canvas.height)/400;
 let offX=(canvas.width-400*scale)/2;
 let offY=(canvas.height-400*scale)/2;
@@ -559,7 +528,6 @@ canvas.ontouchstart=(e)=>{e.preventDefault();canvas.onclick(e);};
 
 let running=true;
 
-// ТВОЙ КОД
 ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
 <\/script>
 </body>
@@ -581,7 +549,7 @@ ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
     document.getElementById('compileBtn').onclick = compileAndRun;
     document.getElementById('saveBtn').onclick = saveHTML;
     document.getElementById('closeBtn').onclick = closeWindow;
-    document.getElementById('stopBtn').onclick = stopAnim;
+    document.getElementById('stopBtn').onclick = stopAnimation;
     
     document.addEventListener('keydown', (e) => {
         if (e.key === 'F5') {
@@ -590,7 +558,6 @@ ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
         }
     });
     
-    // Перетаскивание
     let drag = false, dx, dy;
     const win = document.getElementById('animationWindow');
     const title = document.getElementById('titlebar');
@@ -608,8 +575,8 @@ ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
     };
     document.onmouseup = () => { drag = false; };
     
-    addOutput('✅ Готов. Нажми F5', 'success');
-    addOutput('🎯 При нажатии на поле рисуется желтый круг', 'info');
+    addOutput('✅ Готов. МЕНЯЙ КОД В РЕДАКТОРЕ, потом F5', 'success');
+    addOutput('🎯 При нажатии рисуется круг. Меняй функцию onTap()', 'info');
     addOutput('❌ При закрытии окна цикл останавливается', 'info');
 </script>
 </body>
