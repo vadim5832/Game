@@ -3,603 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Compiler - CodeBlocks Style</title>
-    <style>
-        * {
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            background: #2d2d30;
-            margin: 0;
-            padding: 20px;
-            font-family: 'Segoe UI', 'Consolas', monospace;
-            min-height: 100vh;
-        }
-        
-        .ide-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: #1e1e1e;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        
-        .toolbar {
-            background: #2d2d30;
-            padding: 10px 15px;
-            display: flex;
-            gap: 10px;
-            border-bottom: 1px solid #3e3e42;
-            flex-wrap: wrap;
-        }
-        
-        .toolbar button {
-            background: #0e639c;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: monospace;
-        }
-        
-        .toolbar button:hover {
-            background: #1177bb;
-            transform: scale(1.02);
-        }
-        
-        .toolbar button:active {
-            transform: scale(0.98);
-        }
-        
-        .toolbar .save-btn {
-            background: #2b7a3e;
-        }
-        
-        .toolbar .save-btn:hover {
-            background: #3c9e4c;
-        }
-        
-        .status-bar {
-            background: #007acc;
-            color: white;
-            padding: 4px 15px;
-            font-size: 12px;
-            font-family: monospace;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .main-content {
-            display: flex;
-            gap: 0;
-            min-height: 550px;
-        }
-        
-        .editor-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #3e3e42;
-        }
-        
-        .panel-header {
-            background: #252526;
-            padding: 8px 15px;
-            color: #cccccc;
-            font-size: 12px;
-            font-weight: bold;
-            border-bottom: 1px solid #3e3e42;
-            font-family: monospace;
-        }
-        
-        textarea {
-            flex: 1;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: none;
-            padding: 15px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-            line-height: 1.5;
-        }
-        
-        .output-panel {
-            width: 350px;
-            background: #1e1e1e;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .output-area {
-            flex: 1;
-            background: #1e1e1e;
-            color: #cccccc;
-            font-family: monospace;
-            font-size: 12px;
-            padding: 10px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        
-        .error-text { color: #f48771; }
-        .success-text { color: #6a9955; }
-        .info-text { color: #9cdcfe; }
-        
-        .animation-window {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #2d2d30;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            z-index: 1000;
-            min-width: 450px;
-            border: 2px solid #4c6ef5;
-            display: none;
-        }
-        
-        .animation-window.show {
-            display: block;
-            animation: fadeIn 0.2s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -48%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
-        }
-        
-        .window-titlebar {
-            background: #3e3e42;
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 10px 10px 0 0;
-            cursor: move;
-        }
-        
-        .window-title {
-            color: white;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        
-        .window-close {
-            background: #e81123;
-            border: none;
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        
-        .window-close:hover {
-            background: #f14c4c;
-        }
-        
-        .window-content {
-            padding: 20px;
-            background: #0a0c12;
-            border-radius: 0 0 12px 12px;
-            text-align: center;
-        }
-        
-        .animation-canvas {
-            background: #0a0c12;
-            border-radius: 8px;
-            box-shadow: 0 0 0 2px #4c6ef5;
-            width: 400px;
-            height: 400px;
-        }
-        
-        .window-controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .window-controls button {
-            background: #4c6ef5;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        
-        .window-controls button:hover {
-            background: #3b5bdb;
-        }
-        
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 999;
-            display: none;
-        }
-        
-        .overlay.show {
-            display: block;
-        }
-    </style>
-</head>
-<body>
-<div class="ide-container">
-    <div class="toolbar">
-        <button id="compileBtn">▶ Компилировать и запустить (F5)</button>
-        <button id="saveBtn" class="save-btn">💾 Сохранить HTML</button>
-    </div>
-    <div class="status-bar">
-        <span>📁 OpenGL Project</span>
-        <span id="statusText">Готов к компиляции</span>
-    </div>
-    <div class="main-content">
-        <div class="editor-panel">
-            <div class="panel-header">📝 Редактор кода (C-подобный синтаксис)</div>
-            <textarea id="code">// Шахматная доска
-void drawBoard() {
-    int x;
-    int y;
-    for (y = 0; y < 8; y = y + 1) {
-        for (x = 0; x < 8; x = x + 1) {
-            if ((x + y) % 2 == 0) {
-                glColor3f(0.2, 0.2, 0.2);
-            } else {
-                glColor3f(0.9, 0.9, 0.9);
-            }
-            glBegin(GL_QUADS);
-                glVertex3f(x * 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
-            glEnd();
-        }
-    }
-}
-
-// Рисование круга
-void drawCircle(float cx, float cy, float r, float red, float green, float blue) {
-    glColor3f(red, green, blue);
-    glBegin(GL_TRIANGLE_FAN);
-        glVertex3f(cx, cy, 0.0);
-        int i;
-        for (i = 0; i <= 36; i = i + 1) {
-            float angle = i * 10.0 * 3.14159 / 180.0;
-            glVertex3f(cx + r * cos(angle), cy + r * sin(angle), 0.0);
-        }
-    glEnd();
-}
-
-// Анимация
-float posX;
-float speed;
-int direction;
-
-posX = 50.0;
-speed = 3.0;
-direction = 1;
-
-while (1) {
-    glClear();
-    drawBoard();
-    
-    posX = posX + speed * direction;
-    
-    if (posX > 350.0) {
-        posX = 350.0;
-        direction = -1;
-    }
-    if (posX < 50.0) {
-        posX = 50.0;
-        direction = 1;
-    }
-    
-    drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
-    delay(30);
-}</textarea>
-        </div>
-        <div class="output-panel">
-            <div class="panel-header">📟 Вывод компиляции</div>
-            <div class="output-area" id="output">
-                > Готов к компиляции<br>
-                > Нажмите "Компилировать и запустить" (F5)<br>
-                > Нажмите "Сохранить HTML" чтобы скачать готовую программу
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="overlay" id="overlay"></div>
-<div class="animation-window" id="animationWindow">
-    <div class="window-titlebar" id="windowTitlebar">
-        <span class="window-title">🎮 OpenGL Анимация [RUNNING]</span>
-        <button class="window-close" id="windowCloseBtn">✕</button>
-    </div>
-    <div class="window-content">
-        <canvas id="animationCanvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div class="window-controls">
-            <button id="stopAnimBtn">⏹ Остановить</button>
-            <button id="restartAnimBtn">🔄 Перезапустить</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    const compileBtn = document.getElementById('compileBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const animationWindow = document.getElementById('animationWindow');
-    const overlay = document.getElementById('overlay');
-    const windowCloseBtn = document.getElementById('windowCloseBtn');
-    const stopAnimBtn = document.getElementById('stopAnimBtn');
-    const restartAnimBtn = document.getElementById('restartAnimBtn');
-    const canvas = document.getElementById('animationCanvas');
-    const ctx = canvas.getContext('2d');
-    const outputDiv = document.getElementById('output');
-    const statusText = document.getElementById('statusText');
-    const codeArea = document.getElementById('code');
-    
-    let animationRunning = false;
-    let stopAnimationFlag = false;
-    let animationPromise = null;
-    let posX = 50.0;
-    let direction = 1;
-    let currentSpeed = 3.0;
-    
-    let currentColor = { r: 1, g: 1, b: 1 };
-    let vertices = [];
-    let currentMode = null;
-    let inBegin = false;
-    
-    function rgbToStyle(r,g,b) { 
-        return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`; 
-    }
-    
-    function drawTriangles() {
-        if (vertices.length < 3) return;
-        for (let i = 0; i <= vertices.length - 3; i += 3) {
-            ctx.beginPath();
-            ctx.moveTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.lineTo(vertices[i+2].x, vertices[i+2].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-            ctx.fill();
-        }
-    }
-    
-    function drawQuads() {
-        if (vertices.length < 4) return;
-        for (let i = 0; i <= vertices.length - 4; i += 4) {
-            ctx.beginPath();
-            ctx.moveTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.lineTo(vertices[i+2].x, vertices[i+2].y);
-            ctx.lineTo(vertices[i+3].x, vertices[i+3].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-            ctx.fill();
-        }
-    }
-    
-    function drawTriangleFan() {
-        if (vertices.length < 2) return;
-        let first = vertices[0];
-        for (let i = 1; i < vertices.length - 1; i++) {
-            ctx.beginPath();
-            ctx.moveTo(first.x, first.y);
-            ctx.lineTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-            ctx.fill();
-        }
-    }
-    
-    function flush() {
-        if (vertices.length === 0) return;
-        switch(currentMode) {
-            case 'GL_TRIANGLES': drawTriangles(); break;
-            case 'GL_QUADS': drawQuads(); break;
-            case 'GL_TRIANGLE_FAN': drawTriangleFan(); break;
-        }
-        vertices = [];
-    }
-    
-    const gl = {
-        glColor3f: (r,g,b) => { currentColor = { r, g, b }; },
-        glVertex3f: (x,y,z) => { 
-            if (!inBegin) throw new Error("glVertex3f вне glBegin/glEnd"); 
-            vertices.push({ x, y }); 
-        },
-        glBegin: (mode) => { 
-            if (inBegin) throw new Error("glBegin уже вызван");
-            inBegin = true; 
-            currentMode = mode;
-            vertices = [];
-        },
-        glEnd: () => { 
-            if (!inBegin) throw new Error("glEnd без glBegin");
-            flush();
-            inBegin = false;
-            currentMode = null;
-        },
-        glClear: () => { 
-            ctx.fillStyle = '#0a0c12'; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height); 
-        }
-    };
-    
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    function drawBoard() {
-        for (let y = 0; y < 8; y++) {
-            for (let x = 0; x < 8; x++) {
-                if ((x + y) % 2 === 0) {
-                    gl.glColor3f(0.2, 0.2, 0.2);
-                } else {
-                    gl.glColor3f(0.9, 0.9, 0.9);
-                }
-                gl.glBegin('GL_QUADS');
-                gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
-                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
-                gl.glEnd();
-            }
-        }
-    }
-    
-    function drawCircle(cx, cy, r, red, green, blue) {
-        gl.glColor3f(red, green, blue);
-        gl.glBegin('GL_TRIANGLE_FAN');
-        gl.glVertex3f(cx, cy, 0.0);
-        for (let i = 0; i <= 36; i++) {
-            let angle = i * 10.0 * Math.PI / 180.0;
-            gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
-        }
-        gl.glEnd();
-    }
-    
-    async function runAnimation() {
-        stopAnimationFlag = false;
-        posX = 50.0;
-        direction = 1;
-        
-        while (!stopAnimationFlag) {
-            gl.glClear();
-            drawBoard();
-            
-            posX = posX + currentSpeed * direction;
-            
-            if (posX > 350.0) {
-                posX = 350.0;
-                direction = -1;
-            }
-            if (posX < 50.0) {
-                posX = 50.0;
-                direction = 1;
-            }
-            
-            drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
-            await delay(30);
-        }
-    }
-    
-    async function startAnimation() {
-        if (animationRunning) {
-            stopAnimationFlag = true;
-            if (animationPromise) await animationPromise;
-        }
-        animationRunning = true;
-        stopAnimationFlag = false;
-        animationPromise = runAnimation();
-        await animationPromise;
-        animationRunning = false;
-    }
-    
-    async function stopAnimationCompletely() {
-        stopAnimationFlag = true;
-        if (animationPromise) {
-            await animationPromise;
-            animationPromise = null;
-        }
-        animationRunning = false;
-    }
-    
-    async function showWindow() {
-        await stopAnimationCompletely();
-        animationWindow.classList.add('show');
-        overlay.classList.add('show');
-        await startAnimation();
-        statusText.innerText = "Анимация запущена";
-        addOutput("✅ Анимация запущена", "success");
-    }
-    
-    async function closeWindow() {
-        await stopAnimationCompletely();
-        animationWindow.classList.remove('show');
-        overlay.classList.remove('show');
-        statusText.innerText = "Окно закрыто";
-        addOutput("❌ Окно закрыто, цикл остановлен", "info");
-    }
-    
-    async function restartAnimation() {
-        await stopAnimationCompletely();
-        await startAnimation();
-        addOutput("🔄 Анимация перезапущена", "success");
-    }
-    
-    function addOutput(msg, type = "info") {
-        const colors = { error: "error-text", success: "success-text", info: "info-text" };
-        outputDiv.innerHTML += `<div class="${colors[type]}">> ${escapeHtml(msg)}</div>`;
-        outputDiv.scrollTop = outputDiv.scrollHeight;
-    }
-    
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-    }
-    
-    function clearOutput() {
-        outputDiv.innerHTML = '';
-    }
-    
-    async function compileAndRun() {
-        clearOutput();
-        addOutput("🔨 Компиляция...", "info");
-        statusText.innerText = "Компиляция...";
-        
-        const code = codeArea.value;
-        
-        const speedMatch = code.match(/speed\s*=\s*([\d.]+)\s*;/);
-        if (speedMatch) {
-            currentSpeed = parseFloat(speedMatch[1]);
-            addOutput(`⚡ Скорость: ${currentSpeed}`, "info");
-        }
-        
-        addOutput("✅ Компиляция успешна!", "success");
-        statusText.innerText = "Компиляция успешна";
-        await showWindow();
-    }
-    
-    function saveHTML() {
-        const userCode = codeArea.value;
-        
-        let savedSpeed = 3.0;
-        const speedMatch = userCode.match(/speed\s*=\s*([\d.]+)\s*;/);
-        if (speedMatch) savedSpeed = parseFloat(speedMatch[1]);
-        
-        const escapedCode = userCode
-            .replace(/\\/g, '\\\\')
-            .replace(/`/g, '\\`')
-            .replace(/\$/g, '\\$');
-        
-        const standaloneHTML = `<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Анимация</title>
+    <title>OpenGL РђРЅРёРјР°С†РёСЏ</title>
     <style>
         * {
             margin: 0;
@@ -651,10 +55,10 @@ while (1) {
         let stopAnim = false;
         let posX = 50.0;
         let direction = 1;
-        let speed = ${savedSpeed};
+        let speed = 3;
         
         function rgbToStyle(r,g,b) { 
-            return \`rgb(\${Math.floor(r*255)}, \${Math.floor(g*255)}, \${Math.floor(b*255)})\`; 
+            return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`; 
         }
         
         function drawTriangles() {
@@ -734,8 +138,68 @@ while (1) {
             return new Promise(r => setTimeout(r, ms)); 
         }
         
-        // ПОЛЬЗОВАТЕЛЬСКИЙ КОД:
-        ${escapedCode}
+        // РџРћР›Р¬Р—РћР’РђРўР•Р›Р¬РЎРљРР™ РљРћР”:
+        // РЁР°С…РјР°С‚РЅР°СЏ РґРѕСЃРєР°
+void drawBoard() {
+    int x;
+    int y;
+    for (y = 0; y < 8; y = y + 1) {
+        for (x = 0; x < 8; x = x + 1) {
+            if ((x + y) % 2 == 0) {
+                glColor3f(0.2, 0.2, 0.2);
+            } else {
+                glColor3f(0.9, 0.9, 0.9);
+            }
+            glBegin(GL_QUADS);
+                glVertex3f(x * 50.0, y * 50.0, 0.0);
+                glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
+                glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
+                glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+            glEnd();
+        }
+    }
+}
+
+// Р РёСЃРѕРІР°РЅРёРµ РєСЂСѓРіР°
+void drawCircle(float cx, float cy, float r, float red, float green, float blue) {
+    glColor3f(red, green, blue);
+    glBegin(GL_TRIANGLE_FAN);
+        glVertex3f(cx, cy, 0.0);
+        int i;
+        for (i = 0; i <= 36; i = i + 1) {
+            float angle = i * 10.0 * 3.14159 / 180.0;
+            glVertex3f(cx + r * cos(angle), cy + r * sin(angle), 0.0);
+        }
+    glEnd();
+}
+
+// РђРЅРёРјР°С†РёСЏ
+float posX;
+float speed;
+int direction;
+
+posX = 50.0;
+speed = 3.0;
+direction = 1;
+
+while (1) {
+    glClear();
+    drawBoard();
+    
+    posX = posX + speed * direction;
+    
+    if (posX > 350.0) {
+        posX = 350.0;
+        direction = -1;
+    }
+    if (posX < 50.0) {
+        posX = 50.0;
+        direction = 1;
+    }
+    
+    drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+    delay(30);
+}
         
         async function runAnim() {
             stopAnim = false;
@@ -754,51 +218,6 @@ while (1) {
         }
         
         runAnim();
-    <\/script>
-</body>
-</html>`;
-        
-        const blob = new Blob([standaloneHTML], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `opengl_animation.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        addOutput("💾 Файл сохранён как opengl_animation.html", "success");
-        addOutput("📌 Открой файл в браузере - анимация на весь экран", "info");
-    }
-    
-    compileBtn.addEventListener('click', compileAndRun);
-    saveBtn.addEventListener('click', saveHTML);
-    windowCloseBtn.addEventListener('click', closeWindow);
-    stopAnimBtn.addEventListener('click', async () => { await stopAnimationCompletely(); addOutput("⏹ Остановлено", "info"); });
-    restartAnimBtn.addEventListener('click', restartAnimation);
-    overlay.addEventListener('click', closeWindow);
-    
-    document.addEventListener('keydown', (e) => { if (e.key === 'F5') { e.preventDefault(); compileAndRun(); } });
-    
-    let isDragging = false, dragOffsetX, dragOffsetY;
-    const titlebar = document.getElementById('windowTitlebar');
-    titlebar.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        dragOffsetX = e.clientX - animationWindow.offsetLeft;
-        dragOffsetY = e.clientY - animationWindow.offsetTop;
-    });
-    document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            animationWindow.style.left = (e.clientX - dragOffsetX) + 'px';
-            animationWindow.style.top = (e.clientY - dragOffsetY) + 'px';
-            animationWindow.style.transform = 'none';
-        }
-    });
-    document.addEventListener('mouseup', () => { isDragging = false; });
-    
-    addOutput("🎮 OpenGL Compiler готов", "success");
-    addOutput("📌 F5 - запустить | 💾 Сохранить HTML - анимация на весь экран", "info");
-</script>
+    </script>
 </body>
 </html>
