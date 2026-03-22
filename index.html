@@ -276,6 +276,23 @@ function drawSquare(cx, cy, size, red, green, blue) {
     glEnd();
 }
 
+// ========== ФУНКЦИЯ ДЛЯ ОТСЛЕЖИВАНИЯ НАЖАТИЙ ==========
+// Эта функция будет вызываться каждый раз когда ты нажимаешь на канвас
+function onCanvasClick(x, y) {
+    // Здесь ты можешь написать любой код, который будет выполняться при нажатии
+    console.log("Нажатие на координаты: X=" + x + ", Y=" + y);
+    
+    // Например, можно рисовать круг в месте нажатия
+    drawCircle(x, y, 15, 1, 1, 0); // желтый круг
+    
+    // Или вывести в консоль
+    // Или изменить переменные
+    // Делай что хочешь!
+}
+
+// ========== ПРИМЕР: Рисуем красный круг при нажатии ==========
+// Ты можешь закомментировать эту функцию и написать свою логику
+
 // Переменные анимации
 let posX = 50;
 let speed = 3;
@@ -314,7 +331,9 @@ main();</textarea>
             <div class="output-area" id="output">
                 > Готов к работе<br>
                 > Нажми F5 для запуска<br>
-                > Нажми на канвас - увидишь координаты
+                > Нажми на канвас - увидишь координаты<br>
+                > В коде есть функция onCanvasClick(x, y)<br>
+                > Можешь писать в ней свою логику!
             </div>
         </div>
     </div>
@@ -438,11 +457,9 @@ main();</textarea>
         let clientX, clientY;
         
         if (e.touches) {
-            // touch event
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
         } else {
-            // mouse event
             clientX = e.clientX;
             clientY = e.clientY;
         }
@@ -470,7 +487,7 @@ main();</textarea>
         // Добавляем в вывод
         addOutput(msg, "click");
         
-        // Вызываем пользовательскую функцию если она есть
+        // ВЫЗЫВАЕМ ПОЛЬЗОВАТЕЛЬСКУЮ ФУНКЦИЮ ЕСЛИ ОНА ЕСТЬ
         if (typeof window.onCanvasClick === 'function') {
             try {
                 window.onCanvasClick(coords.x, coords.y);
@@ -526,7 +543,8 @@ main();</textarea>
             
             addOutput("✅ Выполнение запущено", "success");
             statusSpan.innerText = "Анимация работает";
-            addOutput("💡 Теперь нажимай на канвас - будут показываться координаты!", "info");
+            addOutput("💡 Теперь нажимай на канвас - функция onCanvasClick(x, y) будет вызываться!", "info");
+            addOutput("💡 В функции onCanvasClick ты можешь писать свою логику (рисовать круги и т.д.)", "info");
         } catch (err) {
             addOutput(`❌ Ошибка: ${err.message}`, "error");
             statusSpan.innerText = "Ошибка выполнения";
@@ -735,7 +753,8 @@ main();</textarea>
     addOutput("✅ OpenGL эмулятор готов", "success");
     addOutput("📝 Нажми F5 для запуска кода", "info");
     addOutput("💡 При закрытии окна цикл анимации останавливается", "info");
-    addOutput("🖱️ Нажми на канвас (синее поле) - увидишь координаты нажатия!", "info");
+    addOutput("🖱️ В твоем коде есть функция onCanvasClick(x, y)", "info");
+    addOutput("💡 Напиши в ней что хочешь - рисовать круги, менять скорость и т.д.", "info");
 </script>
 </body>
 </html>
