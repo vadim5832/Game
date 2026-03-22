@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>C-Style Graphics Playground</title>
+    <title>C / OpenGL 1.3 Style Graphics</title>
     <style>
         * {
             user-select: none;
@@ -88,6 +88,7 @@
             font-size: 12px;
             max-height: 100px;
             overflow-y: auto;
+            text-align: left;
         }
         .status {
             color: #a0a4b8;
@@ -95,26 +96,38 @@
             font-size: 12px;
             text-align: center;
         }
-        @media (max-width: 800px) {
-            .row { flex-direction: column; }
-            .canvas-panel { min-width: auto; }
-        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="row">
         <div class="editor-panel">
-            <textarea id="code" placeholder="Введите C-подобный код...">// Пример: рисуем квадрат и линию
-int x = 50;
-int y = 50;
-int size = 60;
-rect(x, y, size, size, RGB(100,200,255));
-line(0, 0, 399, 399, RED);
-point(200, 200, GREEN);
-for (int i = 0; i < 5; i++) {
-    rect(10 + i*30, 300, 20, 20, RGB(255,100,100));
-}</textarea>
+            <textarea id="code">// OpenGL 1.3 стиль рисования
+int i;
+for (i = 0; i < 10; i = i + 1) {
+    float x = i * 40.0;
+    float y = 200.0;
+    glColor3f(1.0, 0.2, 0.5);
+    glBegin();
+        glVertex2f(x, y);
+        glVertex2f(x + 30.0, y);
+        glVertex2f(x + 15.0, y + 30.0);
+    glEnd();
+}
+
+glColor3f(0.2, 0.8, 0.3);
+glBegin();
+    glVertex2f(50.0, 50.0);
+    glVertex2f(350.0, 50.0);
+    glVertex2f(200.0, 350.0);
+glEnd();
+
+glColor3f(1.0, 1.0, 0.0);
+glBegin();
+    glVertex2f(300.0, 300.0);
+    glVertex2f(380.0, 300.0);
+    glVertex2f(340.0, 380.0);
+glEnd();</textarea>
         </div>
         <div class="canvas-panel">
             <canvas id="canvas" width="400" height="400"></canvas>
@@ -122,91 +135,148 @@ for (int i = 0; i < 5; i++) {
             <div class="output" id="output">Нажмите "Запустить"</div>
         </div>
     </div>
-    <div class="status">C-подобный язык: int, float, if, for, функции рисования point, line, rect, clear, RGB()</div>
+    <div class="status">C-подобный синтаксис: int, float, if, for, while, glColor3f(r,g,b), glVertex2f(x,y), glBegin(), glEnd()</div>
 </div>
 
 <script>
-    // ---------- Telegram WebApp ----------
+    // Telegram WebApp
     let tg = window.Telegram?.WebApp;
     if (tg) {
         tg.ready();
         tg.expand();
-        tg.enableClosingConfirmation();
     }
 
-    // ---------- Canvas и контекст ----------
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const codeArea = document.getElementById('code');
     const outputDiv = document.getElementById('output');
 
-    // Функции рисования (доступны в интерпретаторе)
-    const graphics = {
-        clear: (color = 'BLACK') => {
-            let fillStyle = color;
-            if (typeof color === 'string') {
-                if (color === 'WHITE') fillStyle = '#ffffff';
-                else if (color === 'BLACK') fillStyle = '#0a0c12';
-                else if (color === 'RED') fillStyle = '#ff3333';
-                else if (color === 'GREEN') fillStyle = '#33ff33';
-                else if (color === 'BLUE') fillStyle = '#3333ff';
-                else fillStyle = color;
-            }
-            ctx.fillStyle = fillStyle;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Состояние OpenGL-подобного рендеринга
+    let currentColor = { r: 1.0, g: 1.0, b: 1.0 };
+    let vertices = [];
+    let inBegin = false;
+
+    function rgbToStyle(r,g,b) {
+        return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`;
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = '#0a0c12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function flushVertices() {
+        if (vertices.length < 3) {
+            vertices = [];
+            return;
+        }
+        ctx.beginPath();
+        ctx.moveTo(vertices[0].x, vertices[0].y);
+        for (let i = 1; i < vertices.length; i++) {
+            ctx.lineTo(vertices[i].x, vertices[i].y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+        ctx.fill();
+        vertices = [];
+    }
+
+    // Доступные функции для интерпретатора
+    const glFunctions = {
+        glColor3f: (r,g,b) => {
+            currentColor = { r: parseFloat(r), g: parseFloat(g), b: parseFloat(b) };
         },
-        point: (x, y, color = 'WHITE') => {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, 1, 1);
+        glVertex2f: (x,y) => {
+            if (!inBegin) throw new Error("glVertex вне glBegin/glEnd");
+            vertices.push({ x: parseFloat(x), y: parseFloat(y) });
         },
-        line: (x1, y1, x2, y2, color = 'WHITE') => {
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.strokeStyle = color;
-            ctx.stroke();
+        glBegin: () => {
+            if (inBegin) throw new Error("glBegin уже вызван");
+            inBegin = true;
+            vertices = [];
         },
-        rect: (x, y, w, h, color = 'WHITE') => {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, w, h);
-        },
-        RGB: (r, g, b) => `rgb(${r},${g},${b})`
+        glEnd: () => {
+            if (!inBegin) throw new Error("glEnd без glBegin");
+            flushVertices();
+            inBegin = false;
+        }
     };
 
-    // Простой интерпретатор C-подобного синтаксиса (подмножество)
+    // Простой парсер выражений
+    function evaluate(expr, vars) {
+        expr = expr.trim();
+        // числа
+        if (!isNaN(parseFloat(expr)) && isFinite(expr)) return parseFloat(expr);
+        // переменные
+        if (vars[expr] !== undefined) return vars[expr];
+        // арифметика простейшая (только + - * /)
+        let ops = ['+', '-', '*', '/'];
+        for (let op of ops) {
+            let parts = expr.split(op);
+            if (parts.length === 2) {
+                let left = evaluate(parts[0].trim(), vars);
+                let right = evaluate(parts[1].trim(), vars);
+                if (op === '+') return left + right;
+                if (op === '-') return left - right;
+                if (op === '*') return left * right;
+                if (op === '/') return left / right;
+            }
+        }
+        throw new Error(`Не удалось вычислить: ${expr}`);
+    }
+
+    // Основной интерпретатор
     function runCode(code) {
-        // Очищаем вывод
+        clearCanvas();
         outputDiv.innerHTML = '';
-        // Очищаем canvas
-        graphics.clear('BLACK');
-
-        // Переменные окружения
         let vars = {};
-        let lastResult = null;
+        let lines = code.split('\n');
+        let i = 0;
 
-        // Вспомогательная функция для получения значения переменной или числа
-        function getValue(expr) {
-            expr = expr.trim();
-            if (!isNaN(parseFloat(expr)) && isFinite(expr)) return parseFloat(expr);
-            if (vars[expr] !== undefined) return vars[expr];
-            throw new Error(`Неизвестная переменная: ${expr}`);
+        function parseBlock(startIdx) {
+            let blockLines = [];
+            let j = startIdx;
+            let braceCount = 0;
+            let started = false;
+            while (j < lines.length) {
+                let line = lines[j].trim();
+                if (line === '{') {
+                    braceCount++;
+                    started = true;
+                    j++;
+                    continue;
+                }
+                if (line === '}') {
+                    braceCount--;
+                    if (braceCount === 0 && started) {
+                        j++;
+                        break;
+                    }
+                    j++;
+                    continue;
+                }
+                if (started || braceCount > 0) {
+                    blockLines.push(lines[j]);
+                }
+                j++;
+            }
+            return { blockLines, newIndex: j };
         }
 
-        // Разбор строки
-        const lines = code.split('\n');
-        for (let i = 0; i < lines.length; i++) {
+        while (i < lines.length) {
             let line = lines[i].trim();
+            i++;
+
             if (line === '' || line.startsWith('//')) continue;
 
             try {
-                // Объявление переменной: int x = 5;  или float y = 3.14;
+                // Объявление переменной: int x = 5; или float y = 3.14;
                 let declMatch = line.match(/^(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
                 if (declMatch) {
-                    let type = declMatch[1];
                     let name = declMatch[2];
-                    let value = getValue(declMatch[3]);
+                    let value = evaluate(declMatch[3], vars);
                     vars[name] = value;
-                    outputDiv.innerHTML += `> ${type} ${name} = ${value}<br>`;
+                    outputDiv.innerHTML += `> ${declMatch[1]} ${name} = ${value}<br>`;
                     continue;
                 }
 
@@ -214,164 +284,150 @@ for (int i = 0; i < 5; i++) {
                 let assignMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/);
                 if (assignMatch) {
                     let name = assignMatch[1];
-                    let value = getValue(assignMatch[2]);
+                    let value = evaluate(assignMatch[2], vars);
                     vars[name] = value;
                     outputDiv.innerHTML += `> ${name} = ${value}<br>`;
                     continue;
                 }
 
-                // Вызов функции рисования: rect(10,20,30,40,RED);
-                let funcMatch = line.match(/^([a-zA-Z_]+)\((.*)\);$/);
-                if (funcMatch && graphics[funcMatch[1]]) {
-                    let funcName = funcMatch[1];
-                    let argsStr = funcMatch[2];
-                    let args = [];
-                    let current = '';
-                    let paren = 0;
-                    for (let ch of argsStr) {
-                        if (ch === ',' && paren === 0) {
-                            args.push(current.trim());
-                            current = '';
-                        } else {
-                            if (ch === '(') paren++;
-                            if (ch === ')') paren--;
-                            current += ch;
-                        }
-                    }
-                    if (current.trim()) args.push(current.trim());
-                    
-                    // Преобразуем аргументы в значения
-                    let values = [];
-                    for (let arg of args) {
-                        if (arg.startsWith('RGB(')) {
-                            let rgbMatch = arg.match(/RGB\((\d+),(\d+),(\d+)\)/);
-                            if (rgbMatch) {
-                                values.push(`rgb(${rgbMatch[1]},${rgbMatch[2]},${rgbMatch[3]})`);
-                            } else {
-                                throw new Error('Ошибка в RGB');
-                            }
-                        } else if (arg === 'RED') values.push('#ff3333');
-                        else if (arg === 'GREEN') values.push('#33ff33');
-                        else if (arg === 'BLUE') values.push('#3333ff');
-                        else if (arg === 'WHITE') values.push('#ffffff');
-                        else if (arg === 'BLACK') values.push('#000000');
-                        else {
-                            values.push(getValue(arg));
-                        }
-                    }
-                    graphics[funcName](...values);
-                    outputDiv.innerHTML += `> ${funcName}(${values.join(', ')})<br>`;
+                // gl-функции: glColor3f(1,0,0);
+                let glMatch = line.match(/^(gl[A-Z][a-zA-Z0-9]*)\((.*)\);$/);
+                if (glMatch && glFunctions[glMatch[1]]) {
+                    let funcName = glMatch[1];
+                    let argsStr = glMatch[2];
+                    let args = argsStr.split(',').map(a => evaluate(a.trim(), vars));
+                    glFunctions[funcName](...args);
+                    outputDiv.innerHTML += `> ${funcName}(${args.join(', ')})<br>`;
                     continue;
                 }
 
-                // if (условие) { ... } (упрощённо, только одна строка внутри)
-                let ifMatch = line.match(/^if\s*\((.*)\)\s*{(.*)}$/);
+                // glBegin() без параметров
+                if (line === 'glBegin();') {
+                    glFunctions.glBegin();
+                    outputDiv.innerHTML += `> glBegin()<br>`;
+                    continue;
+                }
+
+                // glEnd() без параметров
+                if (line === 'glEnd();') {
+                    glFunctions.glEnd();
+                    outputDiv.innerHTML += `> glEnd()<br>`;
+                    continue;
+                }
+
+                // Условный оператор if (условие) { ... }
+                let ifMatch = line.match(/^if\s*\((.*)\)\s*{?$/);
                 if (ifMatch) {
                     let condition = ifMatch[1];
-                    let body = ifMatch[2].trim();
-                    // Простейшая проверка условия
                     let condResult = false;
-                    let condParts = condition.split(/([<>]=?|==|!=)/);
-                    if (condParts.length === 3) {
-                        let left = getValue(condParts[0]);
-                        let op = condParts[1];
-                        let right = getValue(condParts[2]);
+                    // парсим условие вида a < b или a == b и т.д.
+                    let opMatch = condition.match(/([a-zA-Z0-9_\.]+)\s*([<>=!]=?)\s*([a-zA-Z0-9_\.]+)/);
+                    if (opMatch) {
+                        let left = evaluate(opMatch[1], vars);
+                        let right = evaluate(opMatch[3], vars);
+                        let op = opMatch[2];
                         if (op === '<') condResult = left < right;
                         else if (op === '>') condResult = left > right;
-                        else if (op === '==') condResult = left == right;
-                        else if (op === '!=') condResult = left != right;
                         else if (op === '<=') condResult = left <= right;
                         else if (op === '>=') condResult = left >= right;
+                        else if (op === '==') condResult = left == right;
+                        else if (op === '!=') condResult = left != right;
                     }
-                    if (condResult) {
-                        // Выполняем тело как отдельную строку кода
-                        let fakeLines = [body];
-                        // рекурсивно не будем, просто выполним
-                        let savedLines = lines.slice(i+1);
-                        let savedI = i;
-                        // простой способ: вызываем тот же парсер для одной строки
-                        if (body) {
-                            let tempLines = [body];
-                            for (let tl of tempLines) {
-                                // очень упрощённо, но для примера хватит
-                                let innerMatch = tl.match(/^([a-zA-Z_]+)\((.*)\);$/);
-                                if (innerMatch && graphics[innerMatch[1]]) {
-                                    let innerFunc = innerMatch[1];
-                                    let innerArgs = innerMatch[2].split(',').map(a => a.trim());
-                                    let innerValues = innerArgs.map(a => {
-                                        if (a.match(/^RGB/)) return eval(a);
-                                        return getValue(a);
-                                    });
-                                    graphics[innerFunc](...innerValues);
-                                    outputDiv.innerHTML += `> ${innerFunc}(${innerValues.join(', ')})<br>`;
-                                }
-                            }
+                    // если есть { на той же строке, ищем блок
+                    if (line.includes('{') || (i < lines.length && lines[i].trim() === '{')) {
+                        let block;
+                        if (line.includes('{')) {
+                            // блок уже начат, откатываем i на 1 назад, чтобы parseBlock взял эту строку
+                            i--;
+                            block = parseBlock(i);
+                            i = block.newIndex;
+                        } else {
+                            i++; // пропускаем строку с {
+                            block = parseBlock(i);
+                            i = block.newIndex;
+                        }
+                        if (condResult) {
+                            runCode(block.blockLines.join('\n'));
+                        }
+                    } else {
+                        // однострочный if
+                        let bodyLine = lines[i].trim();
+                        i++;
+                        if (condResult) {
+                            let tempCode = bodyLine;
+                            runCode(tempCode);
                         }
                     }
                     continue;
                 }
 
-                // for (int i=0; i<10; i++) { ... } (упрощённо)
-                let forMatch = line.match(/^for\s*\(\s*int\s+([a-zA-Z_]+)\s*=\s*(\d+)\s*;\s*([a-zA-Z_]+)\s*([<>]=?|==|!=)\s*(\d+)\s*;\s*([a-zA-Z_]+)(\+\+|--)\s*\)\s*{(.*)}$/);
+                // Цикл for (int i = 0; i < 10; i = i + 1) { ... }
+                let forMatch = line.match(/^for\s*\(\s*int\s+([a-zA-Z_]+)\s*=\s*([^;]+);\s*([^;]+);\s*([^)]+)\s*\)\s*{?$/);
                 if (forMatch) {
                     let varName = forMatch[1];
-                    let start = parseInt(forMatch[2]);
-                    let leftVar = forMatch[3];
-                    let op = forMatch[4];
-                    let end = parseInt(forMatch[5]);
-                    let incVar = forMatch[6];
-                    let incOp = forMatch[7];
-                    let body = forMatch[8].trim();
-                    vars[varName] = start;
-                    let condition = (a, b) => {
-                        if (op === '<') return a < b;
-                        if (op === '>') return a > b;
-                        if (op === '<=') return a <= b;
-                        if (op === '>=') return a >= b;
-                        if (op === '==') return a == b;
-                        if (op === '!=') return a != b;
-                        return false;
-                    };
-                    while (condition(vars[varName], end)) {
-                        // выполняем тело
-                        let bodyLines = body.split(';');
-                        for (let bl of bodyLines) {
-                            bl = bl.trim();
-                            if (bl === '') continue;
-                            let innerMatch = bl.match(/^([a-zA-Z_]+)\((.*)\)$/);
-                            if (innerMatch && graphics[innerMatch[1]]) {
-                                let innerFunc = innerMatch[1];
-                                let innerArgs = innerMatch[2].split(',').map(a => a.trim());
-                                let innerValues = innerArgs.map(a => {
-                                    if (a.match(/^RGB/)) return eval(a);
-                                    return getValue(a);
-                                });
-                                graphics[innerFunc](...innerValues);
-                                outputDiv.innerHTML += `> ${innerFunc}(${innerValues.join(', ')})<br>`;
-                            }
+                    let initVal = evaluate(forMatch[2], vars);
+                    let condition = forMatch[3].trim();
+                    let increment = forMatch[4].trim();
+                    vars[varName] = initVal;
+
+                    // парсим блок
+                    let block;
+                    if (line.includes('{')) {
+                        i--;
+                        block = parseBlock(i);
+                        i = block.newIndex;
+                    } else {
+                        i++; // пропускаем строку с {
+                        block = parseBlock(i);
+                        i = block.newIndex;
+                    }
+
+                    // выполняем цикл
+                    while (true) {
+                        // проверка условия
+                        let condResult = false;
+                        let opMatch = condition.match(/([a-zA-Z0-9_\.]+)\s*([<>=!]=?)\s*([a-zA-Z0-9_\.]+)/);
+                        if (opMatch) {
+                            let left = evaluate(opMatch[1], vars);
+                            let right = evaluate(opMatch[3], vars);
+                            let op = opMatch[2];
+                            if (op === '<') condResult = left < right;
+                            else if (op === '>') condResult = left > right;
+                            else if (op === '<=') condResult = left <= right;
+                            else if (op === '>=') condResult = left >= right;
+                            else if (op === '==') condResult = left == right;
+                            else if (op === '!=') condResult = left != right;
                         }
-                        if (incOp === '++') vars[varName]++;
-                        else if (incOp === '--') vars[varName]--;
+                        if (!condResult) break;
+
+                        // выполняем тело
+                        runCode(block.blockLines.join('\n'));
+
+                        // инкремент
+                        let incMatch = increment.match(/([a-zA-Z_]+)\s*=\s*(.+)/);
+                        if (incMatch) {
+                            let incVar = incMatch[1];
+                            let newVal = evaluate(incMatch[2], vars);
+                            vars[incVar] = newVal;
+                        }
                     }
                     continue;
                 }
 
                 // Если ничего не подошло
                 if (line && !line.startsWith('//')) {
-                    outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Неизвестная команда: ${line}</span><br>`;
+                    outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Ошибка в строке ${i}: ${line}</span><br>`;
                 }
             } catch(e) {
-                outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Ошибка в строке ${i+1}: ${e.message}</span><br>`;
+                outputDiv.innerHTML += `<span style="color: #ff6b6b;">⚠️ Ошибка в строке ${i}: ${e.message}</span><br>`;
             }
         }
     }
 
-    // Запуск по кнопке
     document.getElementById('runBtn').addEventListener('click', () => {
         runCode(codeArea.value);
     });
 
-    // При загрузке запускаем пример
     runCode(codeArea.value);
 </script>
 </body>
