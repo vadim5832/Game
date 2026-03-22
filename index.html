@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL - Анимация круга (РАБОТАЕТ)</title>
+    <title>OpenGL - Анимация круга (СТАБИЛЬНО)</title>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #1a1e2c; margin: 0; padding: 20px; font-family: monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -20,6 +20,9 @@
         .error-line { color: #ff6b6b; white-space: pre-wrap; }
         .success-line { color: #6cff8e; white-space: pre-wrap; }
         .status { color: #a0a4b8; margin-top: 10px; font-size: 12px; text-align: center; }
+        .speed-control { margin-top: 10px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+        .speed-control input { background: #0a0c12; border: 1px solid #4c6ef5; color: white; padding: 5px 10px; border-radius: 8px; width: 60px; text-align: center; }
+        .speed-control label { color: #a0a4b8; }
     </style>
 </head>
 <body>
@@ -91,11 +94,16 @@ while (1) {
         <div class="canvas-panel">
             <canvas id="canvas" width="400" height="400"></canvas>
             <button id="runBtn">▶ Запустить код</button>
+            <div class="speed-control">
+                <label>⚡ Скорость:</label>
+                <input type="number" id="speedInput" value="3.0" step="0.5" min="1" max="10">
+                <button id="applySpeedBtn" style="width: auto; padding: 5px 15px; margin-top: 0;">Применить</button>
+            </div>
             <div class="output" id="output">Нажмите "Запустить"</div>
             <button id="copyErrorsBtn" class="copy-btn">📋 Копировать ошибки</button>
         </div>
     </div>
-    <div class="status">🔴 Красный круг бегает по шахматной доске | Отскок от краёв</div>
+    <div class="status">🔴 Красный круг бегает по шахматной доске | Меняй скорость прямо во время анимации!</div>
 </div>
 
 <script>
@@ -107,8 +115,18 @@ while (1) {
     const codeArea = document.getElementById('code');
     const outputDiv = document.getElementById('output');
     const copyErrorsBtn = document.getElementById('copyErrorsBtn');
+    const speedInput = document.getElementById('speedInput');
+    const applySpeedBtn = document.getElementById('applySpeedBtn');
     let errors = [];
-    let isRunning = false;
+    
+    // Глобальные переменные для анимации
+    let animationController = null;
+    let isAnimating = false;
+    let currentSpeed = 3.0;
+    let currentPosX = 50.0;
+    let currentDirection = 1;
+    
+    // Флаги для остановки
     let stopRequested = false;
 
     function clearOutput() { 
@@ -123,6 +141,10 @@ while (1) {
     
     function addSuccess(msg) {
         outputDiv.innerHTML += `<div class="success-line">✅ ${escapeHtml(msg)}</div>`;
+    }
+    
+    function addInfo(msg) {
+        outputDiv.innerHTML += `<div style="color: #ffaa44;">ℹ️ ${escapeHtml(msg)}</div>`;
     }
     
     function escapeHtml(str) { 
@@ -220,16 +242,110 @@ while (1) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // Преобразование C-подобного кода в JavaScript
-    function compileToJS(code) {
-        let js = code;
+    // Функции рисования (нативные JS реализации)
+    function drawBoard() {
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                if ((x + y) % 2 === 0) {
+                    gl.glColor3f(0.2, 0.2, 0.2);
+                } else {
+                    gl.glColor3f(0.9, 0.9, 0.9);
+                }
+                gl.glBegin('GL_QUADS');
+                gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glEnd();
+            }
+        }
+    }
+
+    function drawCircle(cx, cy, r, red, green, blue) {
+        gl.glColor3f(red, green, blue);
+        gl.glBegin('GL_TRIANGLE_FAN');
+        gl.glVertex3f(cx, cy, 0.0);
+        for (let i = 0; i <= 36; i++) {
+            let angle = i * 10.0 * Math.PI / 180.0;
+            gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
+        }
+        gl.glEnd();
+    }
+
+    // Основная анимационная функция
+    async function startAnimation(speed) {
+        // Сбрасываем позицию при новом запуске
+        currentPosX = 50.0;
+        currentDirection = 1;
         
-        // 1. Убираем комментарии
-        js = js.replace(/\/\/[^\n]*/g, '');
+        while (!stopRequested) {
+            gl.glClear();
+            drawBoard();
+            
+            // Движение
+            currentPosX = currentPosX + speed * currentDirection;
+            
+            // Отскок
+            if (currentPosX > 350.0) {
+                currentPosX = 350.0;
+                currentDirection = -1;
+            }
+            if (currentPosX < 50.0) {
+                currentPosX = 50.0;
+                currentDirection = 1;
+            }
+            
+            drawCircle(currentPosX, 300.0, 20.0, 1.0, 0.0, 0.0);
+            
+            await delay(30);
+        }
+    }
+
+    // Остановка текущей анимации
+    async function stopAnimation() {
+        if (animationController) {
+            stopRequested = true;
+            await delay(50);
+            animationController = null;
+        }
+        stopRequested = false;
+    }
+
+    // Запуск анимации с новой скоростью
+    async function runWithSpeed(speed) {
+        await stopAnimation();
+        isAnimating = true;
+        stopRequested = false;
         
-        // 2. Преобразуем функции void -> function
-        js = js.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, (match, name, params) => {
-            // Очищаем параметры от типов
+        clearOutput();
+        addSuccess(`✅ Запущено! Скорость: ${speed}`);
+        addInfo("🔴 Красный круг бегает по шахматной доске");
+        
+        animationController = startAnimation(speed);
+    }
+
+    // Компиляция и запуск пользовательского кода
+    async function runCode(code) {
+        // Сначала останавливаем встроенную анимацию
+        await stopAnimation();
+        
+        clearOutput();
+        gl.glClear();
+        
+        // Сброс состояния GL
+        currentColor = { r: 1, g: 1, b: 1 };
+        vertices = [];
+        inBegin = false;
+        currentMode = null;
+        
+        // Преобразуем код
+        let jsCode = code;
+        
+        // Убираем комментарии
+        jsCode = jsCode.replace(/\/\/[^\n]*/g, '');
+        
+        // Преобразуем функции
+        jsCode = jsCode.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, (match, name, params) => {
             let cleanParams = params.split(',').map(p => {
                 p = p.trim();
                 if (!p) return '';
@@ -239,104 +355,61 @@ while (1) {
             return `function ${name}(${cleanParams}) {`;
         });
         
-        // 3. Объявления переменных внутри функций
-        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $2 =');
-        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $2;');
+        // Объявления переменных
+        jsCode = jsCode.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $2 =');
+        jsCode = jsCode.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $2;');
         
-        // 4. Объявления в for
-        js = js.replace(/for\s*\(\s*(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'for (let $2 =');
+        // for циклы
+        jsCode = jsCode.replace(/for\s*\(\s*(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'for (let $2 =');
         
-        // 5. Инкремент/декремент
-        js = js.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*\+\s*1/g, '$1++');
-        js = js.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*-\s*1/g, '$1--');
+        // Инкремент
+        jsCode = jsCode.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*\+\s*1/g, '$1++');
+        jsCode = jsCode.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\1\s*-\s*1/g, '$1--');
         
-        // 6. while(1)
-        js = js.replace(/while\s*\(\s*1\s*\)/g, 'while (true)');
+        // while
+        jsCode = jsCode.replace(/while\s*\(\s*1\s*\)/g, 'while (true)');
         
-        // 7. delay
-        js = js.replace(/delay\s*\(\s*(\d+)\s*\)\s*;/g, 'await delay($1);');
+        // delay
+        jsCode = jsCode.replace(/delay\s*\(\s*(\d+)\s*\)\s*;/g, 'await delay($1);');
         
-        // 8. GL константы
-        js = js.replace(/\bGL_TRIANGLES\b/g, '"GL_TRIANGLES"');
-        js = js.replace(/\bGL_QUADS\b/g, '"GL_QUADS"');
-        js = js.replace(/\bGL_TRIANGLE_FAN\b/g, '"GL_TRIANGLE_FAN"');
+        // GL константы
+        jsCode = jsCode.replace(/\bGL_TRIANGLES\b/g, '"GL_TRIANGLES"');
+        jsCode = jsCode.replace(/\bGL_QUADS\b/g, '"GL_QUADS"');
+        jsCode = jsCode.replace(/\bGL_TRIANGLE_FAN\b/g, '"GL_TRIANGLE_FAN"');
         
-        // 9. GL функции
-        js = js.replace(/\bglColor3f\s*\(/g, 'gl.glColor3f(');
-        js = js.replace(/\bglVertex3f\s*\(/g, 'gl.glVertex3f(');
-        js = js.replace(/\bglBegin\s*\(/g, 'gl.glBegin(');
-        js = js.replace(/\bglEnd\s*\(/g, 'gl.glEnd(');
-        js = js.replace(/\bglClear\s*\(/g, 'gl.glClear(');
+        // GL функции
+        jsCode = jsCode.replace(/\bglColor3f\s*\(/g, 'gl.glColor3f(');
+        jsCode = jsCode.replace(/\bglVertex3f\s*\(/g, 'gl.glVertex3f(');
+        jsCode = jsCode.replace(/\bglBegin\s*\(/g, 'gl.glBegin(');
+        jsCode = jsCode.replace(/\bglEnd\s*\(/g, 'gl.glEnd(');
+        jsCode = jsCode.replace(/\bglClear\s*\(/g, 'gl.glClear(');
         
-        // 10. Математика
-        js = js.replace(/\bcos\s*\(/g, 'Math.cos(');
-        js = js.replace(/\bsin\s*\(/g, 'Math.sin(');
-        js = js.replace(/\bsqrt\s*\(/g, 'Math.sqrt(');
-        js = js.replace(/\bPI\b/g, 'Math.PI');
-        
-        // 11. Убираем типы из переменных в выражениях (оставляем только имена)
-        // Это важно для параметров функций типа float cx
-        
-        // 12. Оборачиваем в асинхронную функцию с правильным окружением
-        js = `(async function(gl, delay, Math) {
-            try {
-                ${js}
-            } catch(e) {
-                console.error(e);
-                throw e;
-            }
-        })`;
-        
-        return js;
-    }
-
-    let currentRunPromise = null;
-    
-    async function runCode(code) {
-        // Останавливаем предыдущий запуск
-        if (currentRunPromise) {
-            stopRequested = true;
-            await delay(100);
-        }
-        
-        stopRequested = false;
-        isRunning = true;
-        
-        clearOutput();
-        gl.glClear();
-        
-        // Сброс состояния
-        currentColor = { r: 1, g: 1, b: 1 };
-        vertices = [];
-        inBegin = false;
-        currentMode = null;
+        // Математика
+        jsCode = jsCode.replace(/\bcos\s*\(/g, 'Math.cos(');
+        jsCode = jsCode.replace(/\bsin\s*\(/g, 'Math.sin(');
         
         try {
-            const compiledCode = compileToJS(code);
-            console.log("Скомпилированный код:", compiledCode);
-            
-            // Создаём функцию
-            const asyncFunc = eval(compiledCode);
-            
-            // Запускаем с правильными аргументами
+            const asyncFunc = new Function('gl', 'delay', 'Math', `return (async function() { ${jsCode} })()`);
             await asyncFunc(gl, delay, Math);
-            
-            if (!stopRequested && isRunning) {
-                addSuccess("✅ Анимация работает! Красный круг бегает по доске");
-            }
+            addSuccess("✅ Код выполнен!");
         } catch (e) {
-            if (!stopRequested) {
-                addError("Ошибка: " + e.message);
-                console.error(e);
-            }
+            addError("Ошибка: " + e.message);
+            console.error(e);
         }
-        
-        isRunning = false;
     }
 
     // Кнопка запуска
     document.getElementById('runBtn').addEventListener('click', async () => {
         await runCode(codeArea.value);
+    });
+    
+    // Применить скорость
+    applySpeedBtn.addEventListener('click', async () => {
+        let newSpeed = parseFloat(speedInput.value);
+        if (isNaN(newSpeed)) newSpeed = 3.0;
+        currentSpeed = newSpeed;
+        await runWithSpeed(currentSpeed);
+        addInfo(`⚡ Скорость изменена на ${currentSpeed}`);
     });
     
     // Копирование ошибок
@@ -349,9 +422,9 @@ while (1) {
         }
     });
     
-    // Автозапуск через небольшую задержку
+    // Автозапуск со скоростью 3
     setTimeout(() => {
-        runCode(codeArea.value);
+        runWithSpeed(3.0);
     }, 500);
 </script>
 </body>
