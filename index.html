@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Compiler - Реальный интерпретатор</title>
+    <title>OpenGL Compiler - Рабочая версия</title>
     <style>
         * {
             user-select: none;
@@ -51,10 +51,6 @@
         .toolbar button:hover {
             background: #1177bb;
             transform: scale(1.02);
-        }
-        
-        .toolbar button:active {
-            transform: scale(0.98);
         }
         
         .toolbar .save-btn {
@@ -239,89 +235,85 @@
         <div class="editor-panel">
             <div class="panel-header">📝 Редактор кода (C-подобный синтаксис)</div>
             <textarea id="code">// Шахматная доска
-void drawBoard() {
-    int x;
-    int y;
-    for (y = 0; y < 8; y = y + 1) {
-        for (x = 0; x < 8; x = x + 1) {
+function drawBoard() {
+    for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
             if ((x + y) % 2 == 0) {
                 glColor3f(0.2, 0.2, 0.2);
             } else {
                 glColor3f(0.9, 0.9, 0.9);
             }
-            glBegin(GL_QUADS);
-                glVertex3f(x * 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+            glBegin("GL_QUADS");
+                glVertex3f(x * 50, y * 50, 0);
+                glVertex3f(x * 50 + 50, y * 50, 0);
+                glVertex3f(x * 50 + 50, y * 50 + 50, 0);
+                glVertex3f(x * 50, y * 50 + 50, 0);
             glEnd();
         }
     }
 }
 
 // Рисование круга
-void drawCircle(float cx, float cy, float r, float red, float green, float blue) {
+function drawCircle(cx, cy, r, red, green, blue) {
     glColor3f(red, green, blue);
-    glBegin(GL_TRIANGLE_FAN);
-        glVertex3f(cx, cy, 0.0);
-        int i;
-        for (i = 0; i <= 36; i = i + 1) {
-            float angle = i * 10.0 * 3.14159 / 180.0;
-            glVertex3f(cx + r * cos(angle), cy + r * sin(angle), 0.0);
+    glBegin("GL_TRIANGLE_FAN");
+        glVertex3f(cx, cy, 0);
+        for (let i = 0; i <= 36; i++) {
+            let angle = i * 10 * Math.PI / 180;
+            glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0);
         }
     glEnd();
 }
 
 // Рисование квадрата
-void drawSquare(float cx, float cy, float size, float red, float green, float blue) {
+function drawSquare(cx, cy, size, red, green, blue) {
     glColor3f(red, green, blue);
-    glBegin(GL_QUADS);
-        glVertex3f(cx, cy, 0.0);
-        glVertex3f(cx + size, cy, 0.0);
-        glVertex3f(cx + size, cy + size, 0.0);
-        glVertex3f(cx, cy + size, 0.0);
+    glBegin("GL_QUADS");
+        glVertex3f(cx, cy, 0);
+        glVertex3f(cx + size, cy, 0);
+        glVertex3f(cx + size, cy + size, 0);
+        glVertex3f(cx, cy + size, 0);
     glEnd();
 }
 
 // Анимация
-float posX;
-float speed;
-int direction;
+let posX = 50;
+let speed = 3;
+let direction = 1;
 
-posX = 50.0;
-speed = 3.0;
-direction = 1;
+async function animate() {
+    while (true) {
+        glClear();
+        drawBoard();
+        
+        posX = posX + speed * direction;
+        
+        if (posX > 350) {
+            posX = 350;
+            direction = -1;
+        }
+        if (posX < 50) {
+            posX = 50;
+            direction = 1;
+        }
+        
+        // Рисуем синий квадрат слева
+        drawSquare(posX - 45, 295, 30, 0.2, 0.4, 0.8);
+        // Рисуем зеленый квадрат справа
+        drawSquare(posX + 35, 295, 30, 0.2, 0.8, 0.2);
+        
+        await delay(30);
+    }
+}
 
-while (1) {
-    glClear();
-    drawBoard();
-    
-    posX = posX + speed * direction;
-    
-    if (posX > 350.0) {
-        posX = 350.0;
-        direction = -1;
-    }
-    if (posX < 50.0) {
-        posX = 50.0;
-        direction = 1;
-    }
-    
-    // Рисуем синий квадрат слева от круга
-    drawSquare(posX - 45, 295.0, 30.0, 0.2, 0.4, 0.8);
-    
-    // Рисуем зеленый квадрат справа от круга
-    drawSquare(posX + 35, 295.0, 30.0, 0.2, 0.8, 0.2);
-    
-    delay(30);
-}</textarea>
+animate();</textarea>
         </div>
         <div class="output-panel">
             <div class="panel-header">📟 Вывод компиляции</div>
             <div class="output-area" id="output">
                 > Готов к компиляции<br>
-                > Напиши свой код и нажми F5<br>
-                > Код выполняется прямо из редактора!
+                > Нажми F5 для запуска<br>
+                > Код выполняется напрямую из редактора!
             </div>
         </div>
     </div>
@@ -337,25 +329,27 @@ while (1) {
         <canvas id="animationCanvas" width="400" height="400" class="animation-canvas"></canvas>
         <div class="window-controls">
             <button id="stopAnimBtn">⏹ Остановить</button>
+            <button id="restartBtn">🔄 Перезапустить</button>
         </div>
     </div>
 </div>
 
 <script>
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    const outputDiv = document.getElementById('output');
+    const statusText = document.getElementById('statusText');
+    const codeArea = document.getElementById('code');
     const compileBtn = document.getElementById('compileBtn');
     const saveBtn = document.getElementById('saveBtn');
     const animationWindow = document.getElementById('animationWindow');
     const overlay = document.getElementById('overlay');
     const windowCloseBtn = document.getElementById('windowCloseBtn');
     const stopAnimBtn = document.getElementById('stopAnimBtn');
-    const canvas = document.getElementById('animationCanvas');
-    const ctx = canvas.getContext('2d');
-    const outputDiv = document.getElementById('output');
-    const statusText = document.getElementById('statusText');
-    const codeArea = document.getElementById('code');
+    const restartBtn = document.getElementById('restartBtn');
     
-    let currentAnimation = null;
-    let isRunning = false;
+    let animationRunning = false;
+    let animationController = null;
     
     // OpenGL эмуляция
     let currentColor = { r: 1, g: 1, b: 1 };
@@ -460,182 +454,96 @@ while (1) {
         outputDiv.innerHTML = '';
     }
     
-    async function executeUserCode(code) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Создаем функцию из пользовательского кода
-                const funcBody = `
-                    const gl = this.gl;
-                    const delay = this.delay;
-                    const Math = this.Math;
-                    
-                    // Определяем функции пользователя
-                    ${code}
-                    
-                    // Запускаем анимацию (ожидаем что будет бесконечный цикл)
-                    // Перехватываем while(1) через флаг
-                    let __running = true;
-                    this.__stopFlag = () => { __running = false; };
-                    
-                    // Выполняем код (он должен содержать while(1))
-                    // Но while(1) заблокирует всё, поэтому используем eval с async
-                    const asyncRunner = async () => {
-                        // Переопределяем while для возможности остановки
-                        // Создаем функцию, которая выполнит код
-                        const runCode = new Function('gl', 'delay', 'Math', '__stopFlag', `
-                            let __localRunning = true;
-                            const checkStop = () => { if (!__localRunning) throw new Error('STOP'); };
-                            
-                            // Заменяем while(1) на управляемый цикл
-                            // Сохраняем оригинальный код, но модифицируем while
-                            let code = \`${code.replace(/`/g, '\\`').replace(/\$\{/g, '\\${')}\`;
-                            // Заменяем while(1) на while(__localRunning)
-                            code = code.replace(/while\\s*\\(\\s*1\\s*\\)/g, 'while(__localRunning)');
-                            code = code.replace(/while\\s*\\(\\s*true\\s*\\)/g, 'while(__localRunning)');
-                            
-                            const userFunc = new Function('gl', 'delay', 'Math', '__stopFlag', 'checkStop', code + '; return null;');
-                            userFunc(gl, delay, Math, () => { __localRunning = false; }, checkStop);
-                        `);
-                        
-                        runCode(gl, delay, Math, () => {});
-                    };
-                    
-                    await asyncRunner();
-                `;
-                
-                let stopFlag = false;
-                const context = {
-                    gl: gl,
-                    delay: delay,
-                    Math: Math,
-                    __stopFlag: () => { stopFlag = true; }
-                };
-                
-                const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-                const runner = new AsyncFunction('context', funcBody);
-                
-                const promise = runner(context);
-                const checkInterval = setInterval(() => {
-                    if (stopFlag) {
-                        clearInterval(checkInterval);
-                    }
-                }, 100);
-                
-                await promise;
-                clearInterval(checkInterval);
-                resolve();
-            } catch (err) {
-                reject(err);
+    async function runUserCode() {
+        const code = codeArea.value;
+        
+        // Создаем изолированную среду с gl и delay
+        const sandbox = {
+            gl: gl,
+            delay: delay,
+            Math: Math,
+            console: {
+                log: (...args) => addOutput(args.join(' '), 'info')
             }
-        });
-    }
-    
-    async function runUserCode(code) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Простой способ - создаем изолированную среду
-                const sandbox = {
-                    gl: gl,
-                    delay: delay,
-                    Math: Math,
-                    console: { log: (msg) => addOutput(msg, "info") }
-                };
-                
-                // Подготавливаем код
-                let processedCode = code;
-                
-                // Добавляем переменные в глобальную область видимости функции
-                const funcBody = `
-                    return (async function() {
-                        ${processedCode}
-                    })();
-                `;
-                
-                const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-                const userFunc = new AsyncFunction('gl', 'delay', 'Math', funcBody);
-                
-                const promise = userFunc(gl, delay, Math);
-                await promise;
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-        });
+        };
+        
+        // Добавляем глобальные функции в sandbox
+        const funcBody = `
+            const gl = this.gl;
+            const delay = this.delay;
+            const Math = this.Math;
+            const console = this.console;
+            
+            ${code}
+        `;
+        
+        try {
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const userFunc = new AsyncFunction('sandbox', funcBody);
+            await userFunc(sandbox);
+            return true;
+        } catch (err) {
+            addOutput(`❌ Ошибка выполнения: ${err.message}`, "error");
+            console.error(err);
+            return false;
+        }
     }
     
     async function startAnimation() {
-        if (currentAnimation) {
-            await stopAnimation();
-        }
-        
-        isRunning = true;
-        const code = codeArea.value;
-        
-        try {
-            // Очищаем канвас
-            ctx.fillStyle = '#0a0c12';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            addOutput("🚀 Запуск пользовательского кода...", "info");
-            
-            // Выполняем код пользователя
-            await runUserCode(code);
-            
-            addOutput("✅ Выполнение завершено", "success");
-        } catch (err) {
-            addOutput(`❌ Ошибка: ${err.message}`, "error");
-            console.error(err);
-        }
-        
-        isRunning = false;
-        currentAnimation = null;
-    }
-    
-    async function stopAnimation() {
-        if (currentAnimation) {
-            // Просто сбрасываем флаги
-            currentAnimation = null;
-        }
-        isRunning = false;
-        addOutput("⏹ Анимация остановлена", "info");
-    }
-    
-    async function compileAndRun() {
-        clearOutput();
-        addOutput("🔨 Компиляция...", "info");
-        statusText.innerText = "Компиляция...";
-        
-        const code = codeArea.value;
-        
-        // Простая проверка синтаксиса
-        if (code.trim().length === 0) {
-            addOutput("❌ Код пуст!", "error");
-            statusText.innerText = "Ошибка: пустой код";
+        if (animationRunning) {
+            addOutput("⚠️ Анимация уже запущена", "info");
             return;
         }
         
-        addOutput("✅ Компиляция успешна!", "success");
-        statusText.innerText = "Компиляция успешна";
+        clearOutput();
+        addOutput("🚀 Запуск пользовательского кода...", "info");
+        statusText.innerText = "Выполнение...";
         
-        // Показываем окно
+        animationRunning = true;
+        
+        try {
+            await runUserCode();
+            addOutput("✅ Выполнение завершено", "success");
+            statusText.innerText = "Выполнение завершено";
+        } catch (err) {
+            addOutput(`❌ Ошибка: ${err.message}`, "error");
+            statusText.innerText = "Ошибка выполнения";
+        } finally {
+            animationRunning = false;
+        }
+    }
+    
+    function stopAnimation() {
+        addOutput("⏹ Остановка анимации (обновите окно для полной остановки)", "info");
+        statusText.innerText = "Анимация остановлена";
+        // Просто перерисовываем черный экран
+        ctx.fillStyle = '#0a0c12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    function restartAnimation() {
+        stopAnimation();
+        setTimeout(() => {
+            startAnimation();
+        }, 100);
+    }
+    
+    async function compileAndRun() {
         animationWindow.classList.add('show');
         overlay.classList.add('show');
-        
-        // Запускаем анимацию
         await startAnimation();
     }
     
-    async function closeWindow() {
-        await stopAnimation();
+    function closeWindow() {
+        stopAnimation();
         animationWindow.classList.remove('show');
         overlay.classList.remove('show');
         statusText.innerText = "Окно закрыто";
-        addOutput("❌ Окно закрыто", "info");
     }
     
     function saveHTML() {
-        addOutput("💾 Сохранение HTML...", "info");
-        const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -644,13 +552,14 @@ while (1) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        addOutput("✅ Файл сохранен как opengl_program.html", "success");
+        addOutput("💾 Файл сохранен как opengl_program.html", "success");
     }
     
     compileBtn.addEventListener('click', compileAndRun);
     saveBtn.addEventListener('click', saveHTML);
     windowCloseBtn.addEventListener('click', closeWindow);
     stopAnimBtn.addEventListener('click', stopAnimation);
+    restartBtn.addEventListener('click', restartAnimation);
     
     document.addEventListener('keydown', (e) => {
         if (e.key === 'F5') {
@@ -664,22 +573,18 @@ while (1) {
     let dragOffsetX = 0, dragOffsetY = 0;
     const titlebar = document.getElementById('windowTitlebar');
     titlebar.addEventListener('mousedown', (e) => {
-        if (e.target === titlebar || titlebar.contains(e.target)) {
-            isDragging = true;
-            const rect = animationWindow.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
-            animationWindow.style.cursor = 'grabbing';
-            e.preventDefault();
-        }
+        isDragging = true;
+        const rect = animationWindow.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        animationWindow.style.cursor = 'grabbing';
+        e.preventDefault();
     });
     
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            const left = e.clientX - dragOffsetX;
-            const top = e.clientY - dragOffsetY;
-            animationWindow.style.left = left + 'px';
-            animationWindow.style.top = top + 'px';
+            animationWindow.style.left = (e.clientX - dragOffsetX) + 'px';
+            animationWindow.style.top = (e.clientY - dragOffsetY) + 'px';
             animationWindow.style.transform = 'none';
         }
     });
@@ -689,9 +594,10 @@ while (1) {
         animationWindow.style.cursor = '';
     });
     
-    addOutput("🎮 OpenGL эмулятор загружен", "success");
+    addOutput("🎮 OpenGL эмулятор готов", "success");
     addOutput("📝 Твой код из редактора выполняется напрямую!", "success");
-    addOutput("💡 Удали drawCircle из кода - круг исчезнет", "info");
+    addOutput("💡 Можешь убрать drawCircle - круг исчезнет", "info");
+    addOutput("💡 Используй JavaScript синтаксис (function, let, const)", "info");
 </script>
 </body>
 </html>
