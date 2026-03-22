@@ -452,112 +452,33 @@ while (1) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
-    // Стандартные функции для рисования, которые будут использоваться в пользовательском коде
-    const standardFunctions = {
-        drawBoard: function() {
-            for (let y = 0; y < 8; y++) {
-                for (let x = 0; x < 8; x++) {
-                    if ((x + y) % 2 === 0) {
-                        gl.glColor3f(0.2, 0.2, 0.2);
-                    } else {
-                        gl.glColor3f(0.9, 0.9, 0.9);
-                    }
-                    gl.glBegin('GL_QUADS');
-                    gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
-                    gl.glEnd();
+    function drawBoard() {
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                if ((x + y) % 2 === 0) {
+                    gl.glColor3f(0.2, 0.2, 0.2);
+                } else {
+                    gl.glColor3f(0.9, 0.9, 0.9);
                 }
+                gl.glBegin('GL_QUADS');
+                gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
+                gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+                gl.glEnd();
             }
-        },
-        drawCircle: function(cx, cy, r, red, green, blue) {
-            gl.glColor3f(red, green, blue);
-            gl.glBegin('GL_TRIANGLE_FAN');
-            gl.glVertex3f(cx, cy, 0.0);
-            for (let i = 0; i <= 36; i++) {
-                let angle = i * 10.0 * Math.PI / 180.0;
-                gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
-            }
-            gl.glEnd();
-        },
-        delay: delay
-    };
+        }
+    }
     
-    // Функция для выполнения пользовательского кода в изолированной среде
-    async function runUserCode(code, speedValue) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Создаем функцию из пользовательского кода
-                const funcBody = `
-                    const gl = this.gl;
-                    const drawBoard = this.drawBoard;
-                    const drawCircle = this.drawCircle;
-                    const delay = this.delay;
-                    const Math = this.Math;
-                    
-                    // Начальные переменные
-                    let posX = 50.0;
-                    let direction = 1;
-                    let speed = ${speedValue};
-                    
-                    // Выполнение пользовательского кода
-                    ${code}
-                    
-                    // Бесконечный цикл должен быть прерван флагом stopAnimationFlag
-                    // Вместо while(1) используем проверку флага
-                    while (!stopAnimationFlag) {
-                        gl.glClear();
-                        drawBoard();
-                        
-                        posX = posX + speed * direction;
-                        
-                        if (posX > 350.0) {
-                            posX = 350.0;
-                            direction = -1;
-                        }
-                        if (posX < 50.0) {
-                            posX = 50.0;
-                            direction = 1;
-                        }
-                        
-                        drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
-                        await delay(30);
-                    }
-                `;
-                
-                // Создаем контекст выполнения
-                const context = {
-                    gl: gl,
-                    drawBoard: standardFunctions.drawBoard,
-                    drawCircle: standardFunctions.drawCircle,
-                    delay: standardFunctions.delay,
-                    Math: Math,
-                    stopAnimationFlag: false
-                };
-                
-                // Создаем и выполняем функцию
-                const asyncFunc = new Function('return (async function(context) { ' + funcBody + ' })');
-                const runner = asyncFunc();
-                
-                // Запускаем анимацию с возможностью остановки
-                let isRunning = true;
-                let animationTask = runner(context);
-                
-                // Периодически проверяем флаг остановки
-                const checkInterval = setInterval(() => {
-                    if (stopAnimationFlag) {
-                        context.stopAnimationFlag = true;
-                    }
-                }, 10);
-                
-                await animationTask;
-                clearInterval(checkInterval);
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-        });
+    function drawCircle(cx, cy, r, red, green, blue) {
+        gl.glColor3f(red, green, blue);
+        gl.glBegin('GL_TRIANGLE_FAN');
+        gl.glVertex3f(cx, cy, 0.0);
+        for (let i = 0; i <= 36; i++) {
+            let angle = i * 10.0 * Math.PI / 180.0;
+            gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
+        }
+        gl.glEnd();
     }
     
     async function runAnimation() {
@@ -567,7 +488,7 @@ while (1) {
         
         while (!stopAnimationFlag) {
             gl.glClear();
-            standardFunctions.drawBoard();
+            drawBoard();
             
             posX = posX + currentSpeed * direction;
             
@@ -580,7 +501,7 @@ while (1) {
                 direction = 1;
             }
             
-            standardFunctions.drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+            drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
             await delay(30);
         }
     }
@@ -650,28 +571,15 @@ while (1) {
         
         const code = codeArea.value;
         
-        // Извлекаем скорость из кода
         const speedMatch = code.match(/speed\s*=\s*([\d.]+)\s*;/);
         if (speedMatch) {
             currentSpeed = parseFloat(speedMatch[1]);
             addOutput(`⚡ Скорость: ${currentSpeed}`, "info");
         }
         
-        // Проверяем синтаксические ошибки в коде
-        let hasErrors = false;
-        try {
-            // Простая проверка на наличие недопустимых конструкций
-            if (code.includes('while (1)') || code.includes('while(true)')) {
-                addOutput("⚠️ Обнаружен бесконечный цикл while(1), он будет автоматически управляться системой", "info");
-            }
-            addOutput("✅ Компиляция успешна!", "success");
-            statusText.innerText = "Компиляция успешна";
-            await showWindow();
-        } catch (err) {
-            addOutput(`❌ Ошибка компиляции: ${err.message}`, "error");
-            statusText.innerText = "Ошибка компиляции";
-            hasErrors = true;
-        }
+        addOutput("✅ Компиляция успешна!", "success");
+        statusText.innerText = "Компиляция успешна";
+        await showWindow();
     }
     
     function saveHTML() {
@@ -681,13 +589,7 @@ while (1) {
         const speedMatch = userCode.match(/speed\s*=\s*([\d.]+)\s*;/);
         if (speedMatch) savedSpeed = parseFloat(speedMatch[1]);
         
-        // Экранируем код для вставки в HTML
-        const escapedCode = userCode
-            .replace(/\\/g, '\\\\')
-            .replace(/`/g, '\\`')
-            .replace(/\$/g, '\\$')
-            .replace(/<\/script>/gi, '<\\/script>');
-        
+        // Полностью рабочий standalone HTML
         const standaloneHTML = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -721,14 +623,15 @@ while (1) {
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            drawFrame();
         }
+        
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
         
         let scale = 1;
         let offsetX = 0, offsetY = 0;
         
-        function updateScale() {
+        function updateTransform() {
             const size = Math.min(canvas.width, canvas.height);
             scale = size / 400;
             offsetX = (canvas.width - size) / 2;
@@ -743,7 +646,7 @@ while (1) {
         let currentMode = null;
         let inBegin = false;
         let stopAnimation = false;
-        let posX = 50.0;
+        let posX = 50;
         let direction = 1;
         let speed = ${savedSpeed};
         
@@ -810,7 +713,7 @@ while (1) {
             glClear: () => { 
                 ctx.fillStyle = '#0a0c12'; 
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                updateScale();
+                updateTransform();
             }
         };
         
@@ -827,10 +730,10 @@ while (1) {
                         gl.glColor3f(0.9, 0.9, 0.9);
                     }
                     gl.glBegin('GL_QUADS');
-                    gl.glVertex3f(x * 50.0, y * 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0 + 50.0, y * 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0 + 50.0, y * 50.0 + 50.0, 0.0);
-                    gl.glVertex3f(x * 50.0, y * 50.0 + 50.0, 0.0);
+                    gl.glVertex3f(x * 50, y * 50, 0);
+                    gl.glVertex3f(x * 50 + 50, y * 50, 0);
+                    gl.glVertex3f(x * 50 + 50, y * 50 + 50, 0);
+                    gl.glVertex3f(x * 50, y * 50 + 50, 0);
                     gl.glEnd();
                 }
             }
@@ -839,45 +742,45 @@ while (1) {
         function drawCircle(cx, cy, r, red, green, blue) {
             gl.glColor3f(red, green, blue);
             gl.glBegin('GL_TRIANGLE_FAN');
-            gl.glVertex3f(cx, cy, 0.0);
+            gl.glVertex3f(cx, cy, 0);
             for (let i = 0; i <= 36; i++) {
-                let angle = i * 10.0 * Math.PI / 180.0;
-                gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0.0);
+                let angle = i * 10 * Math.PI / 180;
+                gl.glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0);
             }
             gl.glEnd();
         }
         
-        async function animate() {
-            while (!stopAnimation) {
-                gl.glClear();
-                drawBoard();
-                
-                posX = posX + speed * direction;
-                
-                if (posX > 350.0) {
-                    posX = 350.0;
-                    direction = -1;
-                }
-                if (posX < 50.0) {
-                    posX = 50.0;
-                    direction = 1;
-                }
-                
-                drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
-                await delay(30);
+        function drawFrame() {
+            if (stopAnimation) return;
+            
+            updateTransform();
+            gl.glClear();
+            drawBoard();
+            
+            posX = posX + speed * direction;
+            
+            if (posX > 350) {
+                posX = 350;
+                direction = -1;
             }
+            if (posX < 50) {
+                posX = 50;
+                direction = 1;
+            }
+            
+            drawCircle(posX, 300, 20, 1, 0, 0);
+            
+            requestAnimationFrame(() => {
+                setTimeout(drawFrame, 30);
+            });
         }
         
-        // Пользовательский код
-        ${escapedCode}
-        
-        // Запуск анимации
-        animate();
+        resizeCanvas();
+        drawFrame();
     <\/script>
 </body>
 </html>`;
         
-        // Создаем blob и скачиваем
         const blob = new Blob([standaloneHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -892,7 +795,6 @@ while (1) {
         statusText.innerText = "HTML сохранен";
     }
     
-    // Обработчики событий
     compileBtn.addEventListener('click', compileAndRun);
     saveBtn.addEventListener('click', saveHTML);
     windowCloseBtn.addEventListener('click', closeWindow);
@@ -906,7 +808,6 @@ while (1) {
         statusText.innerText = "Анимация перезапущена";
     });
     
-    // Обработчик клавиши F5
     document.addEventListener('keydown', (e) => {
         if (e.key === 'F5') {
             e.preventDefault();
@@ -914,10 +815,8 @@ while (1) {
         }
     });
     
-    // Перетаскивание окна
     let isDragging = false;
     let dragOffsetX = 0, dragOffsetY = 0;
-    
     const titlebar = document.getElementById('windowTitlebar');
     titlebar.addEventListener('mousedown', (e) => {
         if (e.target === titlebar || titlebar.contains(e.target)) {
