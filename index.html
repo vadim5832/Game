@@ -133,7 +133,6 @@
         .success-text { color: #6a9955; }
         .info-text { color: #9cdcfe; }
         
-        /* Окно анимации */
         .animation-window {
             position: fixed;
             top: 50%;
@@ -184,7 +183,6 @@
             cursor: pointer;
             font-size: 18px;
             font-weight: bold;
-            transition: all 0.2s;
         }
         
         .window-close:hover {
@@ -330,7 +328,6 @@ while (1) {
     </div>
 </div>
 
-<!-- Отдельное окно анимации -->
 <div class="overlay" id="overlay"></div>
 <div class="animation-window" id="animationWindow">
     <div class="window-titlebar" id="windowTitlebar">
@@ -347,7 +344,6 @@ while (1) {
 </div>
 
 <script>
-    // Элементы
     const compileBtn = document.getElementById('compileBtn');
     const saveBtn = document.getElementById('saveBtn');
     const animationWindow = document.getElementById('animationWindow');
@@ -361,17 +357,13 @@ while (1) {
     const statusText = document.getElementById('statusText');
     const codeArea = document.getElementById('code');
     
-    // Переменные анимации
     let animationRunning = false;
     let stopAnimationFlag = false;
     let animationPromise = null;
-    
-    // Параметры анимации
     let posX = 50.0;
     let direction = 1;
     let currentSpeed = 3.0;
     
-    // GL контекст
     let currentColor = { r: 1, g: 1, b: 1 };
     let vertices = [];
     let currentMode = null;
@@ -460,7 +452,6 @@ while (1) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
-    // Встроенные функции рисования
     function drawBoard() {
         for (let y = 0; y < 8; y++) {
             for (let x = 0; x < 8; x++) {
@@ -490,7 +481,6 @@ while (1) {
         gl.glEnd();
     }
     
-    // Основная анимация
     async function runAnimation() {
         stopAnimationFlag = false;
         posX = 50.0;
@@ -543,15 +533,15 @@ while (1) {
         overlay.classList.add('show');
         await startAnimation();
         statusText.innerText = "Анимация запущена";
-        addOutput("✅ Анимация запущена в отдельном окне", "success");
+        addOutput("✅ Анимация запущена", "success");
     }
     
     async function closeWindow() {
         await stopAnimationCompletely();
         animationWindow.classList.remove('show');
         overlay.classList.remove('show');
-        statusText.innerText = "Окно анимации закрыто";
-        addOutput("❌ Окно анимации закрыто, цикл остановлен", "info");
+        statusText.innerText = "Окно закрыто";
+        addOutput("❌ Окно закрыто, цикл остановлен", "info");
     }
     
     async function restartAnimation() {
@@ -574,7 +564,6 @@ while (1) {
         outputDiv.innerHTML = '';
     }
     
-    // Компиляция и запуск
     async function compileAndRun() {
         clearOutput();
         addOutput("🔨 Компиляция...", "info");
@@ -585,36 +574,28 @@ while (1) {
         const speedMatch = code.match(/speed\s*=\s*([\d.]+)\s*;/);
         if (speedMatch) {
             currentSpeed = parseFloat(speedMatch[1]);
-            addOutput(`⚡ Загружена скорость: ${currentSpeed}`, "info");
+            addOutput(`⚡ Скорость: ${currentSpeed}`, "info");
         }
         
-        if (code.includes("while") && code.includes("delay")) {
-            addOutput("✅ Компиляция успешна! Запускаю анимацию...", "success");
-            statusText.innerText = "Компиляция успешна";
-            await showWindow();
-        } else {
-            addOutput("⚠️ Ошибка: в коде нет цикла while(1) или delay()", "error");
-            statusText.innerText = "Ошибка компиляции";
-        }
+        addOutput("✅ Компиляция успешна!", "success");
+        statusText.innerText = "Компиляция успешна";
+        await showWindow();
     }
     
-    // Сохранение HTML файла
     function saveHTML() {
-        const code = codeArea.value;
+        const userCode = codeArea.value;
         
-        // Создаём отдельный HTML файл с анимацией
         const standaloneHTML = `<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenGL Анимация</title>
     <style>
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
         body {
             background: #1a1e2c;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -626,49 +607,30 @@ while (1) {
             background: #0f1219;
             padding: 20px;
             border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         canvas {
             background: #0a0c12;
             border-radius: 12px;
             box-shadow: 0 0 0 2px #4c6ef5;
         }
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
         button {
             background: #4c6ef5;
             border: none;
             color: white;
             padding: 8px 20px;
+            margin: 10px;
             border-radius: 20px;
             cursor: pointer;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #3b5bdb;
-        }
-        .status {
-            color: #a0a4b8;
-            margin-top: 10px;
-            font-size: 12px;
         }
     </style>
 </head>
 <body>
 <div class="container">
     <canvas id="canvas" width="400" height="400"></canvas>
-    <div class="controls">
-        <button id="stopBtn">⏹ Остановить</button>
-        <button id="restartBtn">🔄 Перезапустить</button>
-    </div>
-    <div class="status">🔴 Красный круг бегает по шахматной доске | Скорость: ${currentSpeed}</div>
+    <br>
+    <button id="stopBtn">⏹ Остановить</button>
+    <button id="restartBtn">🔄 Перезапустить</button>
 </div>
-
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -677,14 +639,12 @@ while (1) {
     let vertices = [];
     let currentMode = null;
     let inBegin = false;
-    let stopAnimation = false;
+    let stopAnim = false;
     let posX = 50.0;
     let direction = 1;
-    let speed = ${currentSpeed};
+    let speed = 3.0;
     
-    function rgbToStyle(r,g,b) { 
-        return \`rgb(\${Math.floor(r*255)}, \${Math.floor(g*255)}, \${Math.floor(b*255)})\`; 
-    }
+    function rgbToStyle(r,g,b) { return \`rgb(\${Math.floor(r*255)}, \${Math.floor(g*255)}, \${Math.floor(b*255)})\`; }
     
     function drawTriangles() {
         if (vertices.length < 3) return;
@@ -739,138 +699,77 @@ while (1) {
     
     const gl = {
         glColor3f: (r,g,b) => { currentColor = { r, g, b }; },
-        glVertex3f: (x,y,z) => { 
-            if (!inBegin) throw new Error("glVertex3f вне glBegin/glEnd"); 
-            vertices.push({ x, y }); 
-        },
-        glBegin: (mode) => { 
-            if (inBegin) throw new Error("glBegin уже вызван");
-            inBegin = true; 
-            currentMode = mode;
-            vertices = [];
-        },
-        glEnd: () => { 
-            if (!inBegin) throw new Error("glEnd без glBegin");
-            flush();
-            inBegin = false;
-            currentMode = null;
-        },
-        glClear: () => { 
-            ctx.fillStyle = '#0a0c12'; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height); 
-        }
+        glVertex3f: (x,y,z) => { if (!inBegin) throw new Error(); vertices.push({ x, y }); },
+        glBegin: (mode) => { inBegin = true; currentMode = mode; vertices = []; },
+        glEnd: () => { flush(); inBegin = false; currentMode = null; },
+        glClear: () => { ctx.fillStyle = '#0a0c12'; ctx.fillRect(0, 0, 400, 400); }
     };
     
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
     
-    // Функции из твоего кода
-    ${code}
+    // ПОЛЬЗОВАТЕЛЬСКИЙ КОД:
+    ${userCode}
     
-    // Запуск анимации
-    async function runAnimation() {
-        stopAnimation = false;
+    async function runAnim() {
+        stopAnim = false;
         posX = 50.0;
         direction = 1;
-        
-        while (!stopAnimation) {
+        while (!stopAnim) {
             glClear();
             drawBoard();
-            
             posX = posX + speed * direction;
-            
-            if (posX > 350.0) {
-                posX = 350.0;
-                direction = -1;
-            }
-            if (posX < 50.0) {
-                posX = 50.0;
-                direction = 1;
-            }
-            
+            if (posX > 350.0) { posX = 350.0; direction = -1; }
+            if (posX < 50.0) { posX = 50.0; direction = 1; }
             drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
             await delay(30);
         }
     }
     
-    let animationPromise = null;
-    
+    let animPromise = null;
     async function start() {
-        if (animationPromise) {
-            stopAnimation = true;
-            await animationPromise;
-        }
-        stopAnimation = false;
-        animationPromise = runAnimation();
-        await animationPromise;
+        if (animPromise) { stopAnim = true; await animPromise; }
+        stopAnim = false;
+        animPromise = runAnim();
+        await animPromise;
     }
     
-    function stop() {
-        stopAnimation = true;
-    }
-    
-    function restart() {
-        stop();
-        setTimeout(start, 50);
-    }
-    
-    document.getElementById('stopBtn').onclick = stop;
-    document.getElementById('restartBtn').onclick = restart;
+    document.getElementById('stopBtn').onclick = () => { stopAnim = true; };
+    document.getElementById('restartBtn').onclick = () => { stopAnim = true; setTimeout(start, 50); };
     
     start();
-</script>
+<\/script>
 </body>
 </html>`;
         
-        // Создаём blob и скачиваем
         const blob = new Blob([standaloneHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `opengl_animation_${Date.now()}.html`;
+        a.download = `opengl_program.html`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        addOutput("💾 HTML файл сохранён! Можешь открыть его в любом браузере", "success");
-        statusText.innerText = "HTML сохранён";
+        addOutput("💾 Файл сохранён как opengl_program.html", "success");
     }
     
-    // События
     compileBtn.addEventListener('click', compileAndRun);
     saveBtn.addEventListener('click', saveHTML);
     windowCloseBtn.addEventListener('click', closeWindow);
-    stopAnimBtn.addEventListener('click', async () => {
-        await stopAnimationCompletely();
-        addOutput("⏹ Анимация остановлена", "info");
-        statusText.innerText = "Анимация остановлена";
-    });
+    stopAnimBtn.addEventListener('click', async () => { await stopAnimationCompletely(); addOutput("⏹ Остановлено", "info"); });
     restartAnimBtn.addEventListener('click', restartAnimation);
     overlay.addEventListener('click', closeWindow);
     
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'F5') {
-            e.preventDefault();
-            compileAndRun();
-        }
-    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'F5') { e.preventDefault(); compileAndRun(); } });
     
-    // Перетаскивание окна
-    let isDragging = false;
-    let dragOffsetX, dragOffsetY;
+    let isDragging = false, dragOffsetX, dragOffsetY;
     const titlebar = document.getElementById('windowTitlebar');
-    
     titlebar.addEventListener('mousedown', (e) => {
-        if (e.target === titlebar || e.target.parentElement === titlebar) {
-            isDragging = true;
-            dragOffsetX = e.clientX - animationWindow.offsetLeft;
-            dragOffsetY = e.clientY - animationWindow.offsetTop;
-            animationWindow.style.cursor = 'grabbing';
-        }
+        isDragging = true;
+        dragOffsetX = e.clientX - animationWindow.offsetLeft;
+        dragOffsetY = e.clientY - animationWindow.offsetTop;
     });
-    
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
             animationWindow.style.left = (e.clientX - dragOffsetX) + 'px';
@@ -878,16 +777,10 @@ while (1) {
             animationWindow.style.transform = 'none';
         }
     });
-    
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-        animationWindow.style.cursor = '';
-    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
     
     addOutput("🎮 OpenGL Compiler готов", "success");
-    addOutput("📌 F5 - скомпилировать и запустить", "info");
-    addOutput("💾 Сохранить HTML - скачать готовую программу", "info");
-    addOutput("📌 Меняй speed в коде и жми F5 - скорость обновится", "info");
+    addOutput("📌 F5 - запустить | 💾 Сохранить HTML", "info");
 </script>
 </body>
 </html>
