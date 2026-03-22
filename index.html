@@ -583,59 +583,168 @@ while (1) {
     }
     
     function saveHTML() {
-        const userCode = codeArea.value;
-        
-        // Парсим скорость из кода
-        let savedSpeed = 3.0;
-        const speedMatch = userCode.match(/speed\s*=\s*([\d.]+)\s*;/);
-        if (speedMatch) {
-            savedSpeed = parseFloat(speedMatch[1]);
-        }
-        
-        // Экранируем пользовательский код для вставки в строку
-        const escapedCode = userCode.replace(/`/g, '\\`').replace(/\$/g, '\\$');
-        
-        const standaloneHTML = `<!DOCTYPE html>
-<html lang="ru">
+    const userCode = codeArea.value;
+    
+    // Парсим скорость
+    let savedSpeed = 3.0;
+    const speedMatch = userCode.match(/speed\s*=\s*([\d.]+)\s*;/);
+    if (speedMatch) savedSpeed = parseFloat(speedMatch[1]);
+    
+    // Экранируем код правильно
+    const escapedCode = userCode
+        .replace(/\\/g, '\\\\')
+        .replace(/`/g, '\\`')
+        .replace(/\$/g, '\\$');
+    
+    const standaloneHTML = `<!DOCTYPE html>
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenGL Анимация</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0a0c12;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-            object-fit: contain;
-            background: #0a0c12;
-        }
+        * { margin: 0; padding: 0; }
+        body { background: #0a0c12; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         
-        // Настройка размера на весь экран
-        function resizeCanvas() {
+        let currentColor = { r: 1, g: 1, b: 1 };
+        let vertices = [];
+        let currentMode = null;
+        let inBegin = false;
+        let stopAnim = false;
+        let posX = 50.0;
+        let direction = 1;
+        let speed = ${savedSpeed};
+        
+        let scale = 1;
+        let offsetX = 0, offsetY = 0;
+        
+        function updateScale() {
+            const size = Math.min(canvas.width, canvas.height);
+            scale = size / 400;
+            offsetX = (canvas.width - size) / 2;
+            offsetY = (canvas.height - size) / 2;
+        }
+        
+        window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            updateScale();
+        });
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        updateScale();
+        
+        function tx(x) { return offsetX + x * scale; }
+        function ty(y) { return offsetY + y * scale; }
+        
+        function rgbToStyle(r,g,b) { 
+            return \`rgb(\${Math.floor(r*255)}, \${Math.floor(g*255)}, \${Math.floor(b*255)})\`; 
         }
+        
+        function drawTriangles() {
+            if (vertices.length < 3) return;
+            for (let i = 0; i <= vertices.length - 3; i += 3) {
+                ctx.beginPath();
+                ctx.moveTo(tx(vertices[i].x), ty(vertices[i].y));
+                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
+                ctx.lineTo(tx(vertices[i+2].x), ty(vertices[i+2].y));
+                ctx.closePath();
+                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+                ctx.fill();
+            }
+        }
+        
+        function drawQuads() {
+            if (vertices.length < 4) return;
+            for (let i = 0; i <= vertices.length - 4; i += 4) {
+                ctx.beginPath();
+                ctx.moveTo(tx(vertices[i].x), ty(vertices[i].y));
+                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
+                ctx.lineTo(tx(vertices[i+2].x), ty(vertices[i+2].y));
+                ctx.lineTo(tx(vertices[i+3].x), ty(vertices[i+3].y));
+                ctx.closePath();
+                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+                ctx.fill();
+            }
+        }
+        
+        function drawTriangleFan() {
+            if (vertices.length < 2) return;
+            let first = vertices[0];
+            for (let i = 1; i < vertices.length - 1; i++) {
+                ctx.beginPath();
+                ctx.moveTo(tx(first.x), ty(first.y));
+                ctx.lineTo(tx(vertices[i].x), ty(vertices[i].y));
+                ctx.lineTo(tx(vertices[i+1].x), ty(vertices[i+1].y));
+                ctx.closePath();
+                ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+                ctx.fill();
+            }
+        }
+        
+        function flush() {
+            if (vertices.length === 0) return;
+            switch(currentMode) {
+                case 'GL_TRIANGLES': drawTriangles(); break;
+                case 'GL_QUADS': drawQuads(); break;
+                case 'GL_TRIANGLE_FAN': drawTriangleFan(); break;
+            }
+            vertices = [];
+        }
+        
+        const gl = {
+            glColor3f: (r,g,b) => { currentColor = { r, g, b }; },
+            glVertex3f: (x,y,z) => { if (!inBegin) return; vertices.push({ x, y }); },
+            glBegin: (mode) => { inBegin = true; currentMode = mode; vertices = []; },
+            glEnd: () => { flush(); inBegin = false; currentMode = null; },
+            glClear: () => { ctx.fillStyle = '#0a0c12'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+        };
+        
+        function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+        
+        // ПОЛЬЗОВАТЕЛЬСКИЙ КОД:
+        ${escapedCode}
+        
+        async function runAnim() {
+            stopAnim = false;
+            posX = 50.0;
+            direction = 1;
+            while (!stopAnim) {
+                glClear();
+                drawBoard();
+                posX = posX + speed * direction;
+                if (posX > 350.0) { posX = 350.0; direction = -1; }
+                if (posX < 50.0) { posX = 50.0; direction = 1; }
+                drawCircle(posX, 300.0, 20.0, 1.0, 0.0, 0.0);
+                await delay(30);
+            }
+        }
+        
+        runAnim();
+    <\/script>
+</body>
+</html>`;
+    
+    const blob = new Blob([standaloneHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `opengl_animation.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    addOutput("💾 Файл сохранён", "success");
+}
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         
