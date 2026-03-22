@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>C to JavaScript Compiler - OpenGL</title>
+    <title>C to JS - Умный компилятор</title>
     <style>
         * {
             user-select: none;
@@ -42,9 +42,8 @@
             font-weight: bold;
         }
         
-        .toolbar .save-btn {
-            background: #2b7a3e;
-        }
+        .toolbar button:hover { background: #1177bb; }
+        .toolbar .save-btn { background: #2b7a3e; }
         
         .status-bar {
             background: #007acc;
@@ -119,9 +118,7 @@
             display: none;
         }
         
-        .animation-window.show {
-            display: block;
-        }
+        .animation-window.show { display: block; }
         
         .window-titlebar {
             background: #3e3e42;
@@ -162,9 +159,7 @@
             display: none;
         }
         
-        .overlay.show {
-            display: block;
-        }
+        .overlay.show { display: block; }
         
         .coords-box {
             margin-top: 10px;
@@ -183,19 +178,17 @@
         <button id="saveBtn" class="save-btn">💾 Сохранить HTML</button>
     </div>
     <div class="status-bar">
-        <span>C → JavaScript Compiler</span>
+        <span>C → JavaScript (умный компилятор)</span>
         <span id="statusText">Готов</span>
     </div>
     <div class="main-content">
         <div class="editor-panel">
-            <div class="panel-header">📝 Пиши на C-подобном синтаксисе</div>
+            <div class="panel-header">📝 Пиши с void, но без типов в for и параметрах</div>
             <textarea id="code">// Шахматная доска
 void drawBoard() {
-    int x;
-    int y;
-    for (y = 0; y < 8; y = y + 1) {
-        for (x = 0; x < 8; x = x + 1) {
-            if ((x + y) % 2 == 0) {
+    for(y = 0; y < 8; y = y + 1) {
+        for(x = 0; x < 8; x = x + 1) {
+            if((x + y) % 2 == 0) {
                 glColor3f(0.2, 0.2, 0.2);
             } else {
                 glColor3f(0.9, 0.9, 0.9);
@@ -215,8 +208,7 @@ void drawCircle(float cx, float cy, float r, float red, float green, float blue)
     glColor3f(red, green, blue);
     glBegin(GL_TRIANGLE_FAN);
         glVertex3f(cx, cy, 0.0);
-        int i;
-        for (i = 0; i <= 36; i = i + 1) {
+        for(i = 0; i <= 36; i = i + 1) {
             float angle = i * 10.0 * 3.14159 / 180.0;
             glVertex3f(cx + r * cos(angle), cy + r * sin(angle), 0.0);
         }
@@ -250,8 +242,8 @@ float circlesY[100];
 int circlesR[100];
 circlesCount = 0;
 
-// Функция при нажатии
-void onTap(float x, float y) {
+// Функция при нажатии - void ОБЯЗАТЕЛЕН, но типы параметров НЕ НУЖНЫ
+void onTap(x, y) {
     circlesX[circlesCount] = x;
     circlesY[circlesCount] = y;
     circlesR[circlesCount] = 15;
@@ -259,17 +251,17 @@ void onTap(float x, float y) {
 }
 
 // Анимация
-while (1) {
+while(1) {
     glClear();
     drawBoard();
     
     posX = posX + speed * direction;
     
-    if (posX > 350.0) {
+    if(posX > 350.0) {
         posX = 350.0;
         direction = -1;
     }
-    if (posX < 50.0) {
+    if(posX < 50.0) {
         posX = 50.0;
         direction = 1;
     }
@@ -278,8 +270,7 @@ while (1) {
     drawSquare(posX + 35.0, 295.0, 30.0, 0.2, 0.8, 0.2);
     
     // Рисуем все сохраненные круги
-    int i;
-    for (i = 0; i < circlesCount; i = i + 1) {
+    for(i = 0; i < circlesCount; i = i + 1) {
         drawCircle(circlesX[i], circlesY[i], circlesR[i], 1.0, 1.0, 0.0);
     }
     
@@ -288,7 +279,7 @@ while (1) {
         </div>
         <div class="output-panel">
             <div class="panel-header">📟 Вывод компиляции</div>
-            <div class="output-area" id="output">> Готов. Пиши на C-подобном синтаксисе!<br>> Поддерживаются: int, float, void, for, while, if, массивы<br>> Нажми F5 для компиляции и запуска</div>
+            <div class="output-area" id="output">> Готов. Пиши код с void, но без типов в for и параметрах!<br>> Пример: void onTap(x, y) - x и y автоматом будут объявлены<br>> Нажми F5 для компиляции и запуска</div>
         </div>
     </div>
 </div>
@@ -301,7 +292,7 @@ while (1) {
     </div>
     <div class="window-content">
         <canvas id="canvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div class="coords-box" id="coordsText">👆 Нажми - появится круг (C-стиль)</div>
+        <div class="coords-box" id="coordsText">👆 Нажми - появится круг</div>
         <div style="margin-top: 10px;">
             <button id="stopBtn">⏹ Остановить</button>
             <button id="clearBtn" style="background:#e81123;">🗑 Очистить круги</button>
@@ -354,6 +345,7 @@ while (1) {
         verts = [];
     }
     
+    // Глобальные OpenGL функции
     window.glColor3f = (r,g,b) => { color = { r, g, b }; };
     window.glVertex3f = (x,y,z) => { verts.push({ x, y }); };
     window.glBegin = (m) => { mode = m; verts = []; };
@@ -365,62 +357,59 @@ while (1) {
     window.delay = (ms) => new Promise(r => setTimeout(r, ms));
     window.cos = Math.cos;
     window.sin = Math.sin;
-    window.M_PI = Math.PI;
     
-    // ========== КОНВЕРТЕР C → JAVASCRIPT ==========
+    // ========== УМНЫЙ КОНВЕРТЕР C → JAVASCRIPT ==========
     function convertCtoJS(code) {
         let js = code;
         
-        // Удаляем комментарии (сохраняем // и /* */)
-        // но оставляем // в строках? упрощенно
+        // 1. Обработка void functionName(params) - убираем void, оставляем function
+        // Находит: void имя(параметры) {
+        js = js.replace(/void\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, 
+            (match, name, params) => {
+                // Обрабатываем параметры - убираем типы если есть
+                let cleanParams = params;
+                // Убираем float и int из параметров
+                cleanParams = cleanParams.replace(/\b(float|int)\s+/g, '');
+                // Убираем лишние пробелы
+                cleanParams = cleanParams.trim();
+                return `function ${name}(${cleanParams}) {`;
+            });
         
-        // Заменяем типы переменных в объявлениях
-        // int x; -> let x;
-        js = js.replace(/\bint\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $1;');
-        js = js.replace(/\bint\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 'let $1 = $2;');
-        js = js.replace(/\bfloat\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $1;');
-        js = js.replace(/\bfloat\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 'let $1 = $2;');
+        // 2. Обработка объявлений переменных (int x; float y;)
+        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, 'let $2;');
+        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 'let $2 = $3;');
         
-        // Массивы: float name[100]; -> let name = new Array(100);
-        js = js.replace(/\b(float|int)\s+([a-zA-Z_][a-zA-Z0-9_]*)\[(\d+)\]\s*;/g, 'let $2 = new Array($3);');
+        // 3. Обработка массивов: int name[100];
+        js = js.replace(/\b(int|float)\s+([a-zA-Z_][a-zA-Z0-9_]*)\[(\d+)\]\s*;/g, 'let $2 = new Array($3);');
         
-        // void function() { -> function function() {
-        js = js.replace(/\bvoid\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, 'function $1(');
+        // 4. Обработка for(i = 0; i < n; i = i + 1) -> добавляем let i
+        // Находим все for(переменная = ...) и добавляем let если переменная не объявлена
+        js = js.replace(/for\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 
+            'for(let $1 = $2;');
         
-        // for (int i = 0; i < n; i = i + 1) -> for (let i = 0; i < n; i++)
-        js = js.replace(/for\s*\(\s*int\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);\s*([^;]+);\s*([^)]+)\)/g, 
-            'for (let $1 = $2; $3; $4)');
+        // 5. while(1) -> while(true)
+        js = js.replace(/while\s*\(\s*1\s*\)/g, 'while(true)');
         
-        // for (int i = 0; i < n; i++) -> for (let i = 0; i < n; i++)
-        js = js.replace(/for\s*\(\s*int\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);\s*([^;]+);\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\4\s*\+\s*1\)/g,
-            'for (let $1 = $2; $3; $1++)');
+        // 6. Убираем типы float и int из выражений (оставляем только числа)
+        // Но оставляем их в объявлениях (уже обработали)
         
-        // while (1) -> while (true)
-        js = js.replace(/while\s*\(\s*1\s*\)/g, 'while (true)');
-        js = js.replace(/while\s*\(\s*true\s*\)/g, 'while (true)');
-        
-        // Заменяем объявления переменных в for
-        js = js.replace(/for\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);/g, 'for (let $1 = $2;');
-        
-        // Убираем точки с запятой после } (не критично)
-        
-        // Заменяем операторы сравнения
-        js = js.replace(/==\s*=/g, '===');
-        js = js.replace(/!=\s*=/g, '!==');
-        
-        // Добавляем await перед delay если нужно
+        // 7. Добавляем await перед delay
         js = js.replace(/delay\(/g, 'await delay(');
         
-        // Делаем функцию main асинхронной если есть while
-        if (js.includes('while (true)') || js.includes('while(1)')) {
-            js = 'async function __main() {\n' + js + '\n}\n__main();';
+        // 8. Оборачиваем весь код в async функцию если есть while(true)
+        if (js.includes('while(true)')) {
+            js = 'async function __main__() {\n' + js + '\n}\n__main__();';
         }
+        
+        // 9. Заменяем GL_QUADS и GL_TRIANGLE_FAN на строки
+        js = js.replace(/GL_QUADS/g, '"GL_QUADS"');
+        js = js.replace(/GL_TRIANGLE_FAN/g, '"GL_TRIANGLE_FAN"');
+        
+        // 10. Добавляем let для переменных в for если их нет
+        // Уже сделано в шаге 4
         
         return js;
     }
-    
-    // ========== ЗАПУСК ==========
-    let isRunning = false;
     
     function addOutput(msg, type = 'info') {
         const cls = type === 'error' ? 'error-text' : (type === 'success' ? 'success-text' : 'info-text');
@@ -453,13 +442,13 @@ while (1) {
     function onCanvasClick(e) {
         e.preventDefault();
         const c = getCoords(e);
-        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y}`;
+        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y} - круг добавлен!`;
         
         if (typeof window.onTap === 'function') {
             try {
                 window.onTap(c.x, c.y);
             } catch(err) {
-                addOutput(`Ошибка в onTap: ${err.message}`, 'error');
+                addOutput(`Ошибка: ${err.message}`, 'error');
             }
         }
     }
@@ -475,26 +464,21 @@ while (1) {
         statusSpan.innerText = 'Компиляция...';
         
         try {
-            // Конвертируем C в JavaScript
             let jsCode = convertCtoJS(cCode);
             
             addOutput('✅ Конвертация успешна', 'success');
-            addOutput('📝 Сгенерированный JavaScript:', 'info');
-            addOutput(jsCode.substring(0, 500) + (jsCode.length > 500 ? '...' : ''), 'info');
+            addOutput('📝 Преобразованный код:', 'info');
+            let preview = jsCode.substring(0, 400);
+            if (jsCode.length > 400) preview += '...';
+            addOutput(preview, 'info');
             
-            // Останавливаем старую анимацию
             if (window.running) {
                 window.running = false;
                 await new Promise(r => setTimeout(r, 200));
             }
             
-            // Очищаем глобальные переменные
             window.running = true;
-            if (typeof window.circles !== 'undefined') {
-                // сохраняем массив если есть
-            }
             
-            // Выполняем сконвертированный код
             const func = new Function(`
                 window.running = true;
                 ${jsCode}
@@ -530,9 +514,6 @@ while (1) {
             window.circlesCount = 0;
             addOutput('🗑 Все круги очищены', 'info');
         }
-        if (typeof window.circles !== 'undefined') {
-            window.circles = [];
-        }
     }
     
     function closeWindow() {
@@ -541,8 +522,8 @@ while (1) {
         }
         document.getElementById('animationWindow').classList.remove('show');
         document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = 'Окно закрыто';
-        addOutput('❌ Окно закрыто', 'info');
+        statusSpan.innerText = 'Закрыто';
+        addOutput('❌ Окно закрыто, цикл остановлен', 'info');
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
@@ -551,7 +532,7 @@ while (1) {
         const currentCode = codeArea.value;
         const html = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>OpenGL C Program</title>
+<head><meta charset="UTF-8"><title>OpenGL Program</title>
 <style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;}</style>
 </head>
 <body>
@@ -679,14 +660,12 @@ ${convertCtoJS(currentCode).replace(/<\/script>/gi, '<\\/script>')}
     };
     document.onmouseup = () => { drag = false; };
     
-    addOutput('✅ C → JavaScript компилятор готов!', 'success');
-    addOutput('📝 Поддерживается:', 'info');
-    addOutput('   - int, float, void', 'info');
-    addOutput('   - for (int i=0; i<n; i++)', 'info');
-    addOutput('   - while (1) → while (true)', 'info');
-    addOutput('   - массивы float name[100]', 'info');
-    addOutput('   - функции void name()', 'info');
-    addOutput('🎯 Нажми F5 для компиляции и запуска', 'info');
+    addOutput('✅ Умный компилятор готов!', 'success');
+    addOutput('📝 Теперь можно писать:', 'info');
+    addOutput('   void onTap(x, y)  - x и y автоматом параметры', 'info');
+    addOutput('   for(i = 0; i < 10; i++) - i автоматом объявится', 'info');
+    addOutput('   int x; float y; - объявления переменных', 'info');
+    addOutput('🎯 Нажми F5 для запуска', 'info');
 </script>
 </body>
 </html>
