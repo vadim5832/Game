@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OpenGL Compiler - С отслеживанием нажатий</title>
+    <title>OpenGL - Просто работай</title>
     <style>
         * {
             user-select: none;
@@ -13,7 +13,7 @@
             background: #2d2d30;
             margin: 0;
             padding: 20px;
-            font-family: 'Segoe UI', 'Consolas', monospace;
+            font-family: monospace;
         }
         
         .ide-container {
@@ -22,15 +22,13 @@
             background: #1e1e1e;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
         
         .toolbar {
             background: #2d2d30;
-            padding: 10px 15px;
+            padding: 10px;
             display: flex;
             gap: 10px;
-            border-bottom: 1px solid #3e3e42;
         }
         
         .toolbar button {
@@ -38,15 +36,9 @@
             border: none;
             color: white;
             padding: 8px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 4px;
             cursor: pointer;
             font-family: monospace;
-        }
-        
-        .toolbar button:hover {
-            background: #1177bb;
+            font-weight: bold;
         }
         
         .toolbar .save-btn {
@@ -56,9 +48,8 @@
         .status-bar {
             background: #007acc;
             color: white;
-            padding: 4px 15px;
+            padding: 4px 10px;
             font-size: 12px;
-            font-family: monospace;
             display: flex;
             justify-content: space-between;
         }
@@ -72,15 +63,12 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #3e3e42;
         }
         
         .panel-header {
             background: #252526;
-            padding: 8px 15px;
-            color: #cccccc;
-            font-size: 12px;
-            font-weight: bold;
+            padding: 8px;
+            color: #ccc;
             border-bottom: 1px solid #3e3e42;
         }
         
@@ -89,12 +77,11 @@
             background: #1e1e1e;
             color: #d4d4d4;
             border: none;
-            padding: 15px;
+            padding: 10px;
             font-family: 'Consolas', monospace;
             font-size: 13px;
             resize: none;
             outline: none;
-            line-height: 1.5;
         }
         
         .output-panel {
@@ -102,23 +89,22 @@
             background: #1e1e1e;
             display: flex;
             flex-direction: column;
+            border-left: 1px solid #3e3e42;
         }
         
         .output-area {
             flex: 1;
             background: #1e1e1e;
-            color: #cccccc;
+            color: #ccc;
             font-family: monospace;
             font-size: 12px;
             padding: 10px;
             overflow-y: auto;
-            white-space: pre-wrap;
         }
         
         .error-text { color: #f48771; }
         .success-text { color: #6a9955; }
         .info-text { color: #9cdcfe; }
-        .click-text { color: #ce9178; font-weight: bold; }
         
         .animation-window {
             position: fixed;
@@ -127,7 +113,6 @@
             transform: translate(-50%, -50%);
             background: #2d2d30;
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             z-index: 1000;
             border: 2px solid #4c6ef5;
             display: none;
@@ -139,17 +124,10 @@
         
         .window-titlebar {
             background: #3e3e42;
-            padding: 10px 15px;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             cursor: move;
-            border-radius: 10px 10px 0 0;
-        }
-        
-        .window-title {
-            color: white;
-            font-family: monospace;
-            font-weight: bold;
         }
         
         .window-close {
@@ -157,52 +135,19 @@
             border: none;
             color: white;
             width: 28px;
-            height: 28px;
-            border-radius: 4px;
             cursor: pointer;
         }
         
         .window-content {
             padding: 20px;
             background: #0a0c12;
-            border-radius: 0 0 12px 12px;
             text-align: center;
         }
         
         .animation-canvas {
-            background: #0a0c12;
-            border-radius: 8px;
-            box-shadow: 0 0 0 2px #4c6ef5;
             width: 400px;
             height: 400px;
             cursor: crosshair;
-        }
-        
-        .click-coords {
-            margin-top: 10px;
-            color: #4c6ef5;
-            font-family: monospace;
-            font-size: 12px;
-            background: #1e1e1e;
-            padding: 5px 10px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-        
-        .window-controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .window-controls button {
-            background: #4c6ef5;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 6px;
-            cursor: pointer;
         }
         
         .overlay {
@@ -224,16 +169,16 @@
 <body>
 <div class="ide-container">
     <div class="toolbar">
-        <button id="compileBtn">▶ Компилировать и запустить (F5)</button>
-        <button id="saveBtn" class="save-btn">💾 Сохранить HTML</button>
+        <button id="compileBtn">▶ Запустить (F5)</button>
+        <button id="saveBtn" class="save-btn">💾 Сохранить</button>
     </div>
     <div class="status-bar">
-        <span>📁 OpenGL Project</span>
-        <span id="statusText">Готов к компиляции</span>
+        <span>OpenGL</span>
+        <span id="statusText">Готов</span>
     </div>
     <div class="main-content">
         <div class="editor-panel">
-            <div class="panel-header">📝 Редактор кода (JavaScript)</div>
+            <div class="panel-header">📝 Твой код (пиши что хочешь)</div>
             <textarea id="code">// Шахматная доска
 function drawBoard() {
     for (let y = 0; y < 8; y++) {
@@ -244,63 +189,55 @@ function drawBoard() {
                 glColor3f(0.9, 0.9, 0.9);
             }
             glBegin("GL_QUADS");
-            glVertex3f(x * 50, y * 50, 0);
-            glVertex3f(x * 50 + 50, y * 50, 0);
-            glVertex3f(x * 50 + 50, y * 50 + 50, 0);
-            glVertex3f(x * 50, y * 50 + 50, 0);
+            glVertex3f(x * 50, y * 50);
+            glVertex3f(x * 50 + 50, y * 50);
+            glVertex3f(x * 50 + 50, y * 50 + 50);
+            glVertex3f(x * 50, y * 50 + 50);
             glEnd();
         }
     }
 }
 
-// Рисование круга
+// Круг
 function drawCircle(cx, cy, r, red, green, blue) {
     glColor3f(red, green, blue);
     glBegin("GL_TRIANGLE_FAN");
-    glVertex3f(cx, cy, 0);
+    glVertex3f(cx, cy);
     for (let i = 0; i <= 36; i++) {
         let angle = i * 10 * Math.PI / 180;
-        glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 0);
+        glVertex3f(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
     }
     glEnd();
 }
 
-// Рисование квадрата
+// Квадрат
 function drawSquare(cx, cy, size, red, green, blue) {
     glColor3f(red, green, blue);
     glBegin("GL_QUADS");
-    glVertex3f(cx, cy, 0);
-    glVertex3f(cx + size, cy, 0);
-    glVertex3f(cx + size, cy + size, 0);
-    glVertex3f(cx, cy + size, 0);
+    glVertex3f(cx, cy);
+    glVertex3f(cx + size, cy);
+    glVertex3f(cx + size, cy + size);
+    glVertex3f(cx, cy + size);
     glEnd();
 }
 
-// ========== ФУНКЦИЯ ДЛЯ ОТСЛЕЖИВАНИЯ НАЖАТИЙ ==========
-// Эта функция будет вызываться каждый раз когда ты нажимаешь на канвас
-function onCanvasClick(x, y) {
-    // Здесь ты можешь написать любой код, который будет выполняться при нажатии
-    console.log("Нажатие на координаты: X=" + x + ", Y=" + y);
-    
-    // Например, можно рисовать круг в месте нажатия
-    drawCircle(x, y, 15, 1, 1, 0); // желтый круг
-    
-    // Или вывести в консоль
-    // Или изменить переменные
-    // Делай что хочешь!
-}
-
-// ========== ПРИМЕР: Рисуем красный круг при нажатии ==========
-// Ты можешь закомментировать эту функцию и написать свою логику
-
-// Переменные анимации
+// Переменные
 let posX = 50;
 let speed = 3;
 let direction = 1;
 
-// Основной цикл анимации
-async function main() {
-    while (window.__animationRunning) {
+// ===== ЭТА ФУНКЦИЯ ВЫЗЫВАЕТСЯ ПРИ НАЖАТИИ НА ЭКРАН =====
+// МОЖЕШЬ МЕНЯТЬ КАК ХОЧЕШЬ!
+function onTap(x, y) {
+    // Например рисуем желтый круг где нажали
+    drawCircle(x, y, 15, 1, 1, 0);
+}
+
+// Анимация
+let running = true;
+
+async function animate() {
+    while (running) {
         glClear();
         drawBoard();
         
@@ -322,405 +259,277 @@ async function main() {
     }
 }
 
-// Запускаем
-window.__animationRunning = true;
-main();</textarea>
+animate();</textarea>
         </div>
         <div class="output-panel">
             <div class="panel-header">📟 Вывод</div>
-            <div class="output-area" id="output">
-                > Готов к работе<br>
-                > Нажми F5 для запуска<br>
-                > Нажми на канвас - увидишь координаты<br>
-                > В коде есть функция onCanvasClick(x, y)<br>
-                > Можешь писать в ней свою логику!
-            </div>
+            <div class="output-area" id="output">> Готов. Нажми F5</div>
         </div>
     </div>
 </div>
 
 <div class="overlay" id="overlay"></div>
 <div class="animation-window" id="animationWindow">
-    <div class="window-titlebar" id="windowTitlebar">
-        <span class="window-title">🎮 OpenGL Анимация</span>
-        <button class="window-close" id="windowCloseBtn">✕</button>
+    <div class="window-titlebar" id="titlebar">
+        <span>Анимация</span>
+        <button class="window-close" id="closeBtn">✕</button>
     </div>
     <div class="window-content">
-        <canvas id="animationCanvas" width="400" height="400" class="animation-canvas"></canvas>
-        <div id="clickCoordsDisplay" class="click-coords">👆 Нажми на поле чтобы увидеть координаты</div>
-        <div class="window-controls">
-            <button id="stopBtn">⏹ Остановить</button>
+        <canvas id="canvas" width="400" height="400" class="animation-canvas"></canvas>
+        <div style="margin-top: 10px; color: #4c6ef5;" id="coordsText">👆 Нажми</div>
+        <div style="margin-top: 10px;">
+            <button id="stopBtn">⏹ Стоп</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Получаем элементы
-    const canvas = document.getElementById('animationCanvas');
+    // Элементы
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const outputDiv = document.getElementById('output');
+    const output = document.getElementById('output');
     const statusSpan = document.getElementById('statusText');
     const codeArea = document.getElementById('code');
-    const clickCoordsDisplay = document.getElementById('clickCoordsDisplay');
+    const coordsText = document.getElementById('coordsText');
     
-    // Глобальный флаг для остановки анимации
-    window.__animationRunning = false;
-    
-    // ========== OpenGL эмуляция ==========
-    let currentColor = { r: 1, g: 1, b: 1 };
-    let vertices = [];
-    let currentMode = null;
-    
-    function rgbToStyle(r,g,b) { 
-        return `rgb(${Math.floor(r*255)}, ${Math.floor(g*255)}, ${Math.floor(b*255)})`; 
-    }
-    
-    function drawTriangles() {
-        for (let i = 0; i <= vertices.length - 3; i += 3) {
-            ctx.beginPath();
-            ctx.moveTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.lineTo(vertices[i+2].x, vertices[i+2].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
-            ctx.fill();
-        }
-    }
+    // OpenGL эмуляция
+    let color = { r: 1, g: 1, b: 1 };
+    let verts = [];
+    let mode = null;
     
     function drawQuads() {
-        for (let i = 0; i <= vertices.length - 4; i += 4) {
+        for (let i = 0; i <= verts.length - 4; i += 4) {
             ctx.beginPath();
-            ctx.moveTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.lineTo(vertices[i+2].x, vertices[i+2].y);
-            ctx.lineTo(vertices[i+3].x, vertices[i+3].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+            ctx.moveTo(verts[i].x, verts[i].y);
+            ctx.lineTo(verts[i+1].x, verts[i+1].y);
+            ctx.lineTo(verts[i+2].x, verts[i+2].y);
+            ctx.lineTo(verts[i+3].x, verts[i+3].y);
+            ctx.fillStyle = `rgb(${color.r*255},${color.g*255},${color.b*255})`;
             ctx.fill();
         }
     }
     
     function drawTriangleFan() {
-        if (vertices.length < 2) return;
-        let first = vertices[0];
-        for (let i = 1; i < vertices.length - 1; i++) {
+        if (verts.length < 2) return;
+        let first = verts[0];
+        for (let i = 1; i < verts.length - 1; i++) {
             ctx.beginPath();
             ctx.moveTo(first.x, first.y);
-            ctx.lineTo(vertices[i].x, vertices[i].y);
-            ctx.lineTo(vertices[i+1].x, vertices[i+1].y);
-            ctx.closePath();
-            ctx.fillStyle = rgbToStyle(currentColor.r, currentColor.g, currentColor.b);
+            ctx.lineTo(verts[i].x, verts[i].y);
+            ctx.lineTo(verts[i+1].x, verts[i+1].y);
+            ctx.fillStyle = `rgb(${color.r*255},${color.g*255},${color.b*255})`;
             ctx.fill();
         }
     }
     
     function flush() {
-        if (vertices.length === 0) return;
-        if (currentMode === 'GL_TRIANGLES') drawTriangles();
-        else if (currentMode === 'GL_QUADS') drawQuads();
-        else if (currentMode === 'GL_TRIANGLE_FAN') drawTriangleFan();
-        vertices = [];
+        if (verts.length === 0) return;
+        if (mode === 'GL_QUADS') drawQuads();
+        else if (mode === 'GL_TRIANGLE_FAN') drawTriangleFan();
+        verts = [];
     }
     
-    // Глобальные OpenGL функции
-    window.glColor3f = (r,g,b) => { currentColor = { r, g, b }; };
-    window.glVertex3f = (x,y,z) => { vertices.push({ x, y }); };
-    window.glBegin = (mode) => { currentMode = mode; vertices = []; };
-    window.glEnd = () => { flush(); currentMode = null; };
-    window.glClear = () => { 
-        ctx.fillStyle = '#0a0c12'; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height); 
+    // Глобальные функции для пользовательского кода
+    window.glColor3f = (r,g,b) => { color = { r, g, b }; };
+    window.glVertex3f = (x,y) => { verts.push({ x, y }); };
+    window.glBegin = (m) => { mode = m; verts = []; };
+    window.glEnd = () => { flush(); mode = null; };
+    window.glClear = () => {
+        ctx.fillStyle = '#0a0c12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
-    window.delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    window.delay = (ms) => new Promise(r => setTimeout(r, ms));
     
-    // Функция для вывода
-    function addOutput(msg, type = "info") {
-        const colors = { error: "error-text", success: "success-text", info: "info-text", click: "click-text" };
-        outputDiv.innerHTML += `<div class="${colors[type] || 'info-text'}">> ${escapeHtml(msg)}</div>`;
-        outputDiv.scrollTop = outputDiv.scrollHeight;
+    // Вывод
+    function addOutput(msg, type = 'info') {
+        const cls = type === 'error' ? 'error-text' : (type === 'success' ? 'success-text' : 'info-text');
+        output.innerHTML += `<div class="${cls}">> ${msg}</div>`;
+        output.scrollTop = output.scrollHeight;
     }
     
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-    }
-    
-    function clearOutput() {
-        outputDiv.innerHTML = '';
-    }
-    
-    // ========== ОТСЛЕЖИВАНИЕ НАЖАТИЙ НА КАНВАС ==========
-    function getCanvasCoords(e) {
+    // Отслеживание нажатий
+    function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        
-        let clientX, clientY;
-        
+        let cx, cy;
         if (e.touches) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
         } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
+            cx = e.clientX;
+            cy = e.clientY;
         }
-        
-        let canvasX = (clientX - rect.left) * scaleX;
-        let canvasY = (clientY - rect.top) * scaleY;
-        
-        canvasX = Math.max(0, Math.min(canvas.width, canvasX));
-        canvasY = Math.max(0, Math.min(canvas.height, canvasY));
-        
-        return { x: Math.floor(canvasX), y: Math.floor(canvasY) };
+        let x = (cx - rect.left) * scaleX;
+        let y = (cy - rect.top) * scaleY;
+        x = Math.max(0, Math.min(canvas.width, x));
+        y = Math.max(0, Math.min(canvas.height, y));
+        return { x: Math.floor(x), y: Math.floor(y) };
     }
     
-    function handleCanvasClick(e) {
+    function onCanvasClick(e) {
         e.preventDefault();
+        const c = getCoords(e);
+        coordsText.innerHTML = `👆 X=${c.x}, Y=${c.y}`;
+        addOutput(`Нажатие: X=${c.x}, Y=${c.y}`, 'click');
         
-        const coords = getCanvasCoords(e);
-        const msg = `📍 Нажатие на координаты: X=${coords.x}, Y=${coords.y}`;
-        
-        // Показываем на канвасе
-        clickCoordsDisplay.innerHTML = `👆 Последнее нажатие: X=${coords.x}, Y=${coords.y}`;
-        clickCoordsDisplay.style.background = '#4c6ef5';
-        clickCoordsDisplay.style.color = 'white';
-        
-        // Добавляем в вывод
-        addOutput(msg, "click");
-        
-        // ВЫЗЫВАЕМ ПОЛЬЗОВАТЕЛЬСКУЮ ФУНКЦИЮ ЕСЛИ ОНА ЕСТЬ
-        if (typeof window.onCanvasClick === 'function') {
+        // Вызываем пользовательскую функцию onTap если есть
+        if (typeof window.onTap === 'function') {
             try {
-                window.onCanvasClick(coords.x, coords.y);
+                window.onTap(c.x, c.y);
             } catch(err) {
-                addOutput(`⚠️ Ошибка в onCanvasClick: ${err.message}`, "error");
+                addOutput(`Ошибка в onTap: ${err.message}`, 'error');
             }
         }
         
-        // Визуальный фидбек - мигающая точка
-        const originalFill = ctx.fillStyle;
+        // Визуальный фидбек
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
-        ctx.arc(coords.x, coords.y, 5, 0, 2 * Math.PI);
+        ctx.arc(c.x, c.y, 5, 0, 2 * Math.PI);
         ctx.fill();
-        setTimeout(() => {
-            ctx.fillStyle = originalFill;
-        }, 100);
-        
-        setTimeout(() => {
-            clickCoordsDisplay.style.background = '#1e1e1e';
-            clickCoordsDisplay.style.color = '#4c6ef5';
-        }, 1000);
+        setTimeout(() => {}, 100);
     }
     
-    // Вешаем обработчики нажатий (мышь и тач)
-    canvas.addEventListener('click', handleCanvasClick);
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        handleCanvasClick(e);
-    });
+    canvas.addEventListener('click', onCanvasClick);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onCanvasClick(e); });
     
-    // Запуск пользовательского кода
-    async function runUserCode() {
+    // Запуск кода
+    let currentAnimation = null;
+    let runningFlag = false;
+    
+    async function runCode() {
         const code = codeArea.value;
         
-        clearOutput();
-        addOutput("🚀 Запуск кода...", "info");
+        output.innerHTML = '';
+        addOutput('Запуск...', 'info');
         
         try {
-            window.__animationRunning = false;
+            // Останавливаем старую анимацию
+            if (window.running) window.running = false;
             await delay(100);
-            window.__animationRunning = true;
             
-            const wrappedCode = `
-                (async function() {
-                    window.__animationRunning = ${window.__animationRunning};
-                    ${code}
-                })();
-            `;
+            // Создаем новую функцию
+            const func = new Function(`
+                window.running = true;
+                ${code}
+            `);
             
-            const asyncFunc = new Function(wrappedCode);
-            await asyncFunc();
+            func();
             
-            addOutput("✅ Выполнение запущено", "success");
-            statusSpan.innerText = "Анимация работает";
-            addOutput("💡 Теперь нажимай на канвас - функция onCanvasClick(x, y) будет вызываться!", "info");
-            addOutput("💡 В функции onCanvasClick ты можешь писать свою логику (рисовать круги и т.д.)", "info");
-        } catch (err) {
-            addOutput(`❌ Ошибка: ${err.message}`, "error");
-            statusSpan.innerText = "Ошибка выполнения";
+            addOutput('✅ Запущено', 'success');
+            statusSpan.innerText = 'Работает';
+        } catch(err) {
+            addOutput(`❌ Ошибка: ${err.message}`, 'error');
+            statusSpan.innerText = 'Ошибка';
             console.error(err);
-            window.__animationRunning = false;
         }
     }
     
-    // Компиляция и запуск
     async function compileAndRun() {
         document.getElementById('animationWindow').classList.add('show');
         document.getElementById('overlay').classList.add('show');
-        statusSpan.innerText = "Запуск...";
-        clickCoordsDisplay.innerHTML = "👆 Нажми на поле чтобы увидеть координаты";
-        await runUserCode();
+        await runCode();
     }
     
-    // Остановка анимации
-    function stopAnimation() {
-        window.__animationRunning = false;
-        addOutput("⏹ Анимация остановлена", "info");
-        statusSpan.innerText = "Анимация остановлена";
+    function stopAnim() {
+        if (window.running) window.running = false;
+        addOutput('⏹ Остановлено', 'info');
+        statusSpan.innerText = 'Остановлено';
         ctx.fillStyle = '#0a0c12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
-    // Закрыть окно - останавливаем анимацию
     function closeWindow() {
-        window.__animationRunning = false;
+        if (window.running) window.running = false;
         document.getElementById('animationWindow').classList.remove('show');
         document.getElementById('overlay').classList.remove('show');
-        statusSpan.innerText = "Окно закрыто, цикл остановлен";
-        addOutput("❌ Окно закрыто, цикл анимации остановлен", "info");
-        ctx.fillStyle = '#0a0c12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        statusSpan.innerText = 'Закрыто';
     }
     
-    // Сохранить HTML
     function saveHTML() {
         const currentCode = codeArea.value;
         const html = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>OpenGL Program</title>
-<style>
-    body { margin: 0; overflow: hidden; background: #0a0c12; }
-    canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
-</style>
+<head><meta charset="UTF-8"><title>OpenGL</title>
+<style>body{margin:0;background:#0a0c12;}canvas{width:100vw;height:100vh;}</style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<div style="position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: #4c6ef5; padding: 5px 10px; border-radius: 5px; font-family: monospace; font-size: 12px;" id="coordsDisplay">👆 Нажми на поле</div>
+<canvas id="c"></canvas>
 <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const coordsDisplay = document.getElementById('coordsDisplay');
-    
-    let __animationRunning = true;
-    
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+resize();window.onresize=resize;
+let scale=Math.min(canvas.width,canvas.height)/400;
+let offX=(canvas.width-400*scale)/2;
+let offY=(canvas.height-400*scale)/2;
+function tx(x){return offX+x*scale;}
+function ty(y){return offY+y*scale;}
+let color={r:1,g:1,b:1};
+let verts=[];
+let mode=null;
+function drawQuads(){
+    for(let i=0;i<=verts.length-4;i+=4){
+        ctx.beginPath();
+        ctx.moveTo(tx(verts[i].x),ty(verts[i].y));
+        ctx.lineTo(tx(verts[i+1].x),ty(verts[i+1].y));
+        ctx.lineTo(tx(verts[i+2].x),ty(verts[i+2].y));
+        ctx.lineTo(tx(verts[i+3].x),ty(verts[i+3].y));
+        ctx.fillStyle=\`rgb(\${color.r*255},\${color.g*255},\${color.b*255})\`;
+        ctx.fill();
     }
-    window.addEventListener('resize', resize);
-    resize();
-    
-    let scale = Math.min(canvas.width, canvas.height) / 400;
-    let offX = (canvas.width - 400 * scale) / 2;
-    let offY = (canvas.height - 400 * scale) / 2;
-    
-    function tx(x) { return offX + x * scale; }
-    function ty(y) { return offY + y * scale; }
-    
-    let color = {r:1,g:1,b:1};
-    let verts = [];
-    let mode = null;
-    
-    window.glColor3f = (r,g,b) => { color = {r,g,b}; };
-    window.glVertex3f = (x,y,z) => { verts.push({x,y}); };
-    window.glBegin = (m) => { mode = m; verts = []; };
-    window.glEnd = () => {
-        if(verts.length < 3) { verts = []; return; }
-        ctx.fillStyle = \`rgb(\${color.r*255},\${color.g*255},\${color.b*255})\`;
-        if(mode === 'GL_QUADS') {
-            for(let i=0; i<verts.length-3; i+=4) {
-                ctx.beginPath();
-                ctx.moveTo(tx(verts[i].x), ty(verts[i].y));
-                ctx.lineTo(tx(verts[i+1].x), ty(verts[i+1].y));
-                ctx.lineTo(tx(verts[i+2].x), ty(verts[i+2].y));
-                ctx.lineTo(tx(verts[i+3].x), ty(verts[i+3].y));
-                ctx.fill();
-            }
-        } else if(mode === 'GL_TRIANGLE_FAN') {
-            for(let i=1; i<verts.length-1; i++) {
-                ctx.beginPath();
-                ctx.moveTo(tx(verts[0].x), ty(verts[0].y));
-                ctx.lineTo(tx(verts[i].x), ty(verts[i].y));
-                ctx.lineTo(tx(verts[i+1].x), ty(verts[i+1].y));
-                ctx.fill();
-            }
-        }
-        verts = [];
-    };
-    window.glClear = () => {
-        ctx.fillStyle = '#0a0c12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        scale = Math.min(canvas.width, canvas.height) / 400;
-        offX = (canvas.width - 400 * scale) / 2;
-        offY = (canvas.height - 400 * scale) / 2;
-    };
-    window.delay = (ms) => new Promise(r => setTimeout(r, ms));
-    
-    // Отслеживание нажатий
-    function getCanvasCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        let clientX, clientY;
-        if (e.touches) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-        let canvasX = (clientX - rect.left) * scaleX;
-        let canvasY = (clientY - rect.top) * scaleY;
-        canvasX = Math.max(0, Math.min(canvas.width, canvasX));
-        canvasY = Math.max(0, Math.min(canvas.height, canvasY));
-        return { x: Math.floor(canvasX), y: Math.floor(canvasY) };
+}
+function drawTriangleFan(){
+    if(verts.length<2)return;
+    let first=verts[0];
+    for(let i=1;i<verts.length-1;i++){
+        ctx.beginPath();
+        ctx.moveTo(tx(first.x),ty(first.y));
+        ctx.lineTo(tx(verts[i].x),ty(verts[i].y));
+        ctx.lineTo(tx(verts[i+1].x),ty(verts[i+1].y));
+        ctx.fillStyle=\`rgb(\${color.r*255},\${color.g*255},\${color.b*255})\`;
+        ctx.fill();
     }
-    
-    function handleClick(e) {
-        const coords = getCanvasCoords(e);
-        coordsDisplay.innerHTML = \`📍 X=\${coords.x}, Y=\${coords.y}\`;
-        coordsDisplay.style.background = '#4c6ef5';
-        coordsDisplay.style.color = 'white';
-        setTimeout(() => {
-            coordsDisplay.style.background = 'rgba(0,0,0,0.7)';
-            coordsDisplay.style.color = '#4c6ef5';
-        }, 1000);
-        
-        if (typeof window.onCanvasClick === 'function') {
-            window.onCanvasClick(coords.x, coords.y);
-        }
-    }
-    
-    canvas.addEventListener('click', handleClick);
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleClick(e); });
-    
-    // Пользовательский код
-    ${currentCode.replace(/<\/script>/gi, '<\\/script>')}
+}
+function flush(){
+    if(verts.length===0)return;
+    if(mode==='GL_QUADS')drawQuads();
+    else if(mode==='GL_TRIANGLE_FAN')drawTriangleFan();
+    verts=[];
+}
+window.glColor3f=(r,g,b)=>{color={r,g,b};};
+window.glVertex3f=(x,y)=>{verts.push({x,y});};
+window.glBegin=(m)=>{mode=m;verts=[];};
+window.glEnd=()=>{flush();mode=null;};
+window.glClear=()=>{
+    ctx.fillStyle='#0a0c12';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    scale=Math.min(canvas.width,canvas.height)/400;
+    offX=(canvas.width-400*scale)/2;
+    offY=(canvas.height-400*scale)/2;
+};
+window.delay=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+// ТВОЙ КОД
+${currentCode.replace(/<\/script>/gi, '<\\/script>')}
 <\/script>
 </body>
 </html>`;
         
         const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = 'opengl_program.html';
+        a.href = URL.createObjectURL(blob);
+        a.download = 'opengl.html';
         a.click();
-        URL.revokeObjectURL(url);
-        addOutput("💾 Файл сохранен как opengl_program.html", "success");
+        URL.revokeObjectURL(blob);
+        addOutput('💾 Сохранено', 'success');
     }
     
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    // Вешаем обработчики
     document.getElementById('compileBtn').onclick = compileAndRun;
     document.getElementById('saveBtn').onclick = saveHTML;
-    document.getElementById('windowCloseBtn').onclick = closeWindow;
-    document.getElementById('stopBtn').onclick = stopAnimation;
+    document.getElementById('closeBtn').onclick = closeWindow;
+    document.getElementById('stopBtn').onclick = stopAnim;
     
-    // F5
     document.addEventListener('keydown', (e) => {
         if (e.key === 'F5') {
             e.preventDefault();
@@ -728,33 +537,27 @@ main();</textarea>
         }
     });
     
-    // Перетаскивание окна
-    let dragging = false, dragX, dragY;
-    const titlebar = document.getElementById('windowTitlebar');
+    // Перетаскивание
+    let drag = false, dx, dy;
     const win = document.getElementById('animationWindow');
-    titlebar.onmousedown = (e) => {
-        dragging = true;
-        dragX = e.clientX - win.offsetLeft;
-        dragY = e.clientY - win.offsetTop;
-        win.style.cursor = 'grabbing';
+    const title = document.getElementById('titlebar');
+    title.onmousedown = (e) => {
+        drag = true;
+        dx = e.clientX - win.offsetLeft;
+        dy = e.clientY - win.offsetTop;
     };
     document.onmousemove = (e) => {
-        if (dragging) {
-            win.style.left = (e.clientX - dragX) + 'px';
-            win.style.top = (e.clientY - dragY) + 'px';
+        if (drag) {
+            win.style.left = (e.clientX - dx) + 'px';
+            win.style.top = (e.clientY - dy) + 'px';
             win.style.transform = 'none';
         }
     };
-    document.onmouseup = () => {
-        dragging = false;
-        win.style.cursor = '';
-    };
+    document.onmouseup = () => { drag = false; };
     
-    addOutput("✅ OpenGL эмулятор готов", "success");
-    addOutput("📝 Нажми F5 для запуска кода", "info");
-    addOutput("💡 При закрытии окна цикл анимации останавливается", "info");
-    addOutput("🖱️ В твоем коде есть функция onCanvasClick(x, y)", "info");
-    addOutput("💡 Напиши в ней что хочешь - рисовать круги, менять скорость и т.д.", "info");
+    addOutput('Готов. Нажми F5', 'success');
+    addOutput('В коде есть функция onTap(x,y) - вызывается при нажатии', 'info');
+    addOutput('Меняй её как хочешь!', 'info');
 </script>
 </body>
 </html>
