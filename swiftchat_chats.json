@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Общий чат",
+    "type": "group",
+    "participants": [
+      1
+    ],
+    "created_at": 1774237854282
+  }
+]
