@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftChat API</title>
+    <title>SwiftChat API Server</title>
     <style>
         body {
             font-family: monospace;
@@ -24,10 +24,23 @@
             padding: 8px;
             font-size: 12px;
         }
+        h1 {
+            color: #0f0;
+            margin-bottom: 20px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #0f0;
+            color: #0a0a0a;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>🚀 SwiftChat API Server</h1>
+    <h1>🚀 SwiftChat API Server <span class="status">ONLINE</span></h1>
     <div class="log" id="log"></div>
 
     <script>
@@ -45,6 +58,14 @@
         let userIdCounter = users.length > 0 ? Math.max(...users.map(u => u.id), 0) + 1 : 1;
         let chatIdCounter = chats.length > 0 ? Math.max(...chats.map(c => c.id), 0) + 1 : 1;
         let msgIdCounter = 1;
+        
+        // Подсчет максимального ID сообщений
+        for (let chatId in messages) {
+            if (messages[chatId] && messages[chatId].length > 0) {
+                let maxMsgId = Math.max(...messages[chatId].map(m => m.id));
+                if (maxMsgId >= msgIdCounter) msgIdCounter = maxMsgId + 1;
+            }
+        }
         
         // Инициализация демо-данных
         if (users.length === 0) {
@@ -87,9 +108,10 @@
             const logDiv = document.getElementById('log');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
             entry.innerHTML = `
-                [${new Date().toLocaleTimeString()}] ${method} ${endpoint} → ${status}
-                <div style="margin-left: 20px; color: #888;">
+                [${time}] ${method} ${endpoint} → ${status}
+                <div style="margin-left: 20px; color: #888; font-size: 10px;">
                     📥 ${JSON.stringify(data || {}).substring(0, 100)}
                     📤 ${JSON.stringify(response || {}).substring(0, 100)}
                 </div>
@@ -144,12 +166,12 @@
                     if (!user) {
                         return jsonResponse({ error: "Invalid credentials" }, 401);
                     }
-                    const token = btoa(`${user.id}:${Date.now()}:${Math.random()}`);
-                    sessions[token] = { user_id: user.id, expires: Date.now() + 604800000 };
+                    const newToken = btoa(user.id + ":" + Date.now() + ":" + Math.random());
+                    sessions[newToken] = { user_id: user.id, expires: Date.now() + 604800000 };
                     saveToLocalStorage();
                     logRequest(method, endpoint, data, { token: "***" }, 200);
                     return jsonResponse({
-                        access_token: token,
+                        access_token: newToken,
                         user: { id: user.id, email: user.email, username: user.username }
                     });
                 }
@@ -262,7 +284,10 @@
                     const session = sessions[token];
                     if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
                     
-                    const query = endpoint.split("?q=")[1] || "";
+                    let query = "";
+                    if (endpoint.includes("?q=")) {
+                        query = endpoint.split("?q=")[1];
+                    }
                     const results = users.filter(u => 
                         u.id !== session.user_id && 
                         (u.email.includes(query) || u.username.includes(query))
@@ -270,15 +295,18 @@
                     return jsonResponse(results);
                 }
                 
-                return jsonResponse({ error: "Endpoint not found" }, 404);
+                return jsonResponse({ error: "Endpoint not found: " + endpoint }, 404);
                 
             } catch (error) {
+                console.error("API Error:", error);
                 logRequest(method, endpoint, data, { error: error.message }, 500);
                 return jsonResponse({ error: error.message }, 500);
             }
         }
         
-        // Обработка входящих POST запросов
+        // ========== ОБРАБОТЧИК POST ЗАПРОСОВ ==========
+        
+        // Функция для обработки запросов из Python
         window.processRequest = async function(requestData) {
             const { method, endpoint, data, token } = requestData;
             const result = await handleRequest(method, endpoint, data, token);
@@ -286,26 +314,40 @@
             return result;
         };
         
-        // Для fetch запросов
-        self.addEventListener('fetch', async (event) => {
-            if (event.request.method === 'POST') {
-                event.respondWith(async () => {
-                    const requestData = await event.request.json();
-                    const result = await handleRequest(
-                        requestData.method,
-                        requestData.endpoint,
-                        requestData.data,
-                        requestData.token
-                    );
-                    return new Response(JSON.stringify(result), {
-                        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-                    });
-                }());
-            }
-        });
+        // Для fetch запросов (если нужно)
+        window.handleAPIRequest = async function(requestData) {
+            return await window.processRequest(requestData);
+        };
         
+        // Выводим информацию в консоль
+        console.log("=".repeat(50));
         console.log("✅ SwiftChat API Server запущен!");
         console.log(`📁 Пользователей: ${users.length}, Чатов: ${chats.length}`);
+        console.log("📡 API доступен по адресу: " + window.location.href);
+        console.log("");
+        console.log("🔧 Пример запроса из Python:");
+        console.log(`
+import requests
+import json
+
+url = "https://vadim5832.github.io/Game/api.html"
+payload = {
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "data": {"email": "demo@swiftchat.com", "password": "demo123"},
+    "token": None
+}
+response = requests.post(url, json=payload)
+print(response.json())
+        `);
+        console.log("=".repeat(50));
+        
+        // Обновляем статус
+        const statusSpan = document.querySelector('.status');
+        if (statusSpan) {
+            statusSpan.textContent = "ONLINE";
+            statusSpan.style.background = "#0f0";
+        }
     </script>
 </body>
 </html>
