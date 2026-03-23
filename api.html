@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftChat API - GitHub Storage</title>
+    <title>SwiftChat API Server</title>
     <style>
         body {
             font-family: monospace;
@@ -12,12 +12,20 @@
             padding: 20px;
             margin: 0;
         }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
         .log {
             background: #1a1a1a;
             border: 1px solid #0f0;
             border-radius: 8px;
             padding: 20px;
-            height: 80vh;
+            height: 500px;
             overflow-y: auto;
             font-size: 12px;
         }
@@ -30,7 +38,6 @@
         .method { color: #ff0; }
         .status { color: #0f0; }
         .error { color: #f00; }
-        h1 { color: #0f0; font-size: 20px; margin-bottom: 20px; }
         .config-panel {
             background: #1a1a1a;
             border: 1px solid #0f0;
@@ -56,31 +63,46 @@
             font-weight: bold;
         }
         button:hover { background: #0c0; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status-online { background: #0f0; color: #0a0a0a; }
+        .status-offline { background: #f00; color: #fff; }
     </style>
 </head>
 <body>
-    <h1>🚀 SwiftChat API Server (GitHub Storage)</h1>
-    
-    <div class="config-panel">
-        <h3>⚙️ Настройка GitHub API</h3>
-        <input type="text" id="githubToken" placeholder="GitHub Token" style="width: 300px;">
-        <input type="text" id="repoOwner" value="vadim5832" placeholder="Owner">
-        <input type="text" id="repoName" value="Game" placeholder="Repository">
-        <button id="saveConfig">💾 Сохранить настройки</button>
-        <div id="configStatus" style="margin-top: 10px; font-size: 12px;"></div>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 SwiftChat API Server</h1>
+            <div>Статус: <span id="status" class="status-badge status-online">ONLINE</span></div>
+            <div style="font-size: 12px; margin-top: 10px;">Все данные сохраняются в GitHub репозиторий</div>
+        </div>
+        
+        <div class="config-panel">
+            <h3>⚙️ Настройка GitHub API</h3>
+            <input type="text" id="githubToken" placeholder="GitHub Token" style="width: 300px;">
+            <input type="text" id="repoOwner" value="vadim5832" placeholder="Owner">
+            <input type="text" id="repoName" value="Game" placeholder="Repository">
+            <button id="saveConfig">💾 Сохранить настройки</button>
+            <div id="configStatus" style="margin-top: 10px; font-size: 12px;"></div>
+        </div>
+        
+        <h3>📡 Лог запросов</h3>
+        <div class="log" id="log"></div>
     </div>
-    
-    <div class="log" id="log"></div>
 
     <script>
         // ============================================
         //   SWIFTCHAT API - ХРАНЕНИЕ В GITHUB
-        //   Все данные сохраняются в репозиторий как JSON файлы
         // ============================================
         
         // Конфигурация GitHub
         let GITHUB_CONFIG = {
-            token: "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",
+            token: "",
             owner: "vadim5832",
             repo: "Game",
             branch: "main"
@@ -96,25 +118,32 @@
         if (savedRepo) GITHUB_CONFIG.repo = savedRepo;
         
         // Заполняем поля
-        document.getElementById("githubToken").value = GITHUB_CONFIG.token;
-        document.getElementById("repoOwner").value = GITHUB_CONFIG.owner;
-        document.getElementById("repoName").value = GITHUB_CONFIG.repo;
+        const tokenInput = document.getElementById("githubToken");
+        const ownerInput = document.getElementById("repoOwner");
+        const repoInput = document.getElementById("repoName");
+        
+        if (tokenInput) tokenInput.value = GITHUB_CONFIG.token;
+        if (ownerInput) ownerInput.value = GITHUB_CONFIG.owner;
+        if (repoInput) repoInput.value = GITHUB_CONFIG.repo;
         
         // Сохранение конфигурации
-        document.getElementById("saveConfig").onclick = () => {
-            GITHUB_CONFIG.token = document.getElementById("githubToken").value;
-            GITHUB_CONFIG.owner = document.getElementById("repoOwner").value;
-            GITHUB_CONFIG.repo = document.getElementById("repoName").value;
-            
-            localStorage.setItem("github_token", GITHUB_CONFIG.token);
-            localStorage.setItem("github_owner", GITHUB_CONFIG.owner);
-            localStorage.setItem("github_repo", GITHUB_CONFIG.repo);
-            
-            const status = document.getElementById("configStatus");
-            status.textContent = "✅ Настройки сохранены!";
-            status.style.color = "#0f0";
-            setTimeout(() => { status.textContent = ""; }, 3000);
-        };
+        const saveBtn = document.getElementById("saveConfig");
+        if (saveBtn) {
+            saveBtn.onclick = () => {
+                GITHUB_CONFIG.token = tokenInput.value;
+                GITHUB_CONFIG.owner = ownerInput.value;
+                GITHUB_CONFIG.repo = repoInput.value;
+                
+                localStorage.setItem("github_token", GITHUB_CONFIG.token);
+                localStorage.setItem("github_owner", GITHUB_CONFIG.owner);
+                localStorage.setItem("github_repo", GITHUB_CONFIG.repo);
+                
+                const status = document.getElementById("configStatus");
+                status.textContent = "✅ Настройки сохранены!";
+                status.style.color = "#0f0";
+                setTimeout(() => { status.textContent = ""; }, 3000);
+            };
+        }
         
         // Логирование
         function logRequest(method, endpoint, data, response, status) {
@@ -171,7 +200,6 @@
             const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}`;
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
             
-            // Проверяем существует ли файл
             let sha = null;
             try {
                 const checkResponse = await fetch(url, {
@@ -226,13 +254,13 @@
             console.log("Loading data from GitHub...");
             
             const users = await getFileFromGitHub("swiftchat_users.json");
-            if (users) {
+            if (users && users.length > 0) {
                 cache.users = users;
                 userIdCounter = Math.max(...users.map(u => u.id), 0) + 1;
             }
             
             const chats = await getFileFromGitHub("swiftchat_chats.json");
-            if (chats) {
+            if (chats && chats.length > 0) {
                 cache.chats = chats;
                 chatIdCounter = Math.max(...chats.map(c => c.id), 0) + 1;
             }
@@ -242,7 +270,7 @@
                 cache.messages = messages;
                 for (const chatId in messages) {
                     const msgs = messages[chatId];
-                    if (msgs.length > 0) {
+                    if (msgs && msgs.length > 0) {
                         const maxId = Math.max(...msgs.map(m => m.id));
                         if (maxId > msgIdCounter) msgIdCounter = maxId + 1;
                     }
@@ -484,8 +512,9 @@
                 
                 const chatMessages = cache.messages[chat_id] || [];
                 
+                // Помечаем как прочитанные
                 chatMessages.forEach(msg => {
-                    if (msg.sender_id !== session.user_id) {
+                    if (msg.sender_id !== session.user_id && !msg.read) {
                         msg.read = true;
                     }
                 });
@@ -559,13 +588,23 @@
             }
         };
         
-        // Обработка запросов
-        window.processAPIRequest = async (method, endpoint, data, token) => {
+        // ========== Обработка запросов ==========
+        
+        async function handleRequest(req, res) {
+            let body = {};
+            try {
+                body = await req.json();
+            } catch(e) {
+                body = {};
+            }
+            
+            const { method, endpoint, data, token } = body;
+            
             console.log(`📡 API Request: ${method} ${endpoint}`, data);
             
+            let response;
+            
             try {
-                let response;
-                
                 if (endpoint === "/" && method === "GET") {
                     response = API.root();
                 }
@@ -596,14 +635,14 @@
                     response = await API.createChat(data, token);
                 }
                 else if (endpoint.match(/^\/api\/messages\/\d+$/) && method === "GET") {
-                    const chatId = endpoint.split("/")[3];
+                    const chatId = parseInt(endpoint.split("/")[3]);
                     response = API.getMessages(chatId, token);
                 }
                 else if (endpoint === "/api/messages" && method === "POST") {
                     response = await API.sendMessage(data, token);
                 }
                 else if (endpoint.match(/^\/api\/messages\/\d+$/) && method === "DELETE") {
-                    const msgId = endpoint.split("/")[3];
+                    const msgId = parseInt(endpoint.split("/")[3]);
                     response = await API.deleteMessage(msgId, token);
                 }
                 else {
@@ -611,27 +650,41 @@
                 }
                 
                 logRequest(method, endpoint, data, response.data, response.status);
-                return response;
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.status(200).json(response);
                 
             } catch (error) {
                 logRequest(method, endpoint, data, { error: error.message }, 500);
-                return jsonResponse({ error: error.message }, 500);
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.status(200).json(jsonResponse({ error: error.message }, 500));
             }
-        };
+        }
         
-        // Загрузка данных при старте
+        // Инициализация
         async function init() {
             await loadDataFromGitHub();
             await initDemoData();
             console.log("✅ SwiftChat API Server (GitHub Storage) запущен!");
             console.log(`📁 Репозиторий: ${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`);
+            
+            // Обновляем статус
+            const statusSpan = document.getElementById("status");
+            if (statusSpan) {
+                statusSpan.textContent = "ONLINE";
+                statusSpan.className = "status-badge status-online";
+            }
         }
         
         init();
         
-        // Доступ из консоли
-        window.API = API;
-        window.getCache = () => cache;
+        // Экспортируем функцию для обработки запросов
+        window.handleAPIRequest = handleRequest;
+        
+        // Для тестирования
+        console.log("API доступен по адресу: " + window.location.href);
+        console.log("Пример запроса: fetch(window.location.href, {method: 'POST', body: JSON.stringify({method:'GET', endpoint:'/', data:{}})}).then(r=>r.json())");
     </script>
 </body>
 </html>
