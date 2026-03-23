@@ -1,1 +1,13 @@
-{}
+{
+  "1": [
+    {
+      "id": 1,
+      "chat_id": 1,
+      "text": "gпривет",
+      "sender_id": 1,
+      "sender_name": "vadim5832",
+      "created_at": 1774238567441,
+      "read": false
+    }
+  ]
+}
