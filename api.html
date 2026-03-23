@@ -3,688 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftChat API Server</title>
+    <title>SwiftChat API</title>
     <style>
         body {
             font-family: monospace;
             background: #0a0a0a;
             color: #0f0;
             padding: 20px;
-            margin: 0;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
         }
         .log {
             background: #1a1a1a;
             border: 1px solid #0f0;
             border-radius: 8px;
             padding: 20px;
-            height: 500px;
+            height: 80vh;
             overflow-y: auto;
-            font-size: 12px;
         }
         .log-entry {
-            border-bottom: 1px solid #2a2a2a;
+            border-bottom: 1px solid #333;
             padding: 8px;
-            margin: 4px 0;
-        }
-        .timestamp { color: #888; }
-        .method { color: #ff0; }
-        .status { color: #0f0; }
-        .error { color: #f00; }
-        .config-panel {
-            background: #1a1a1a;
-            border: 1px solid #0f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        input {
-            background: #0a0a0a;
-            border: 1px solid #0f0;
-            color: #0f0;
-            padding: 8px;
-            margin: 5px;
-            border-radius: 4px;
-        }
-        button {
-            background: #0f0;
-            color: #0a0a0a;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        button:hover { background: #0c0; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
             font-size: 12px;
-            margin-left: 10px;
         }
-        .status-online { background: #0f0; color: #0a0a0a; }
-        .status-offline { background: #f00; color: #fff; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 SwiftChat API Server</h1>
-            <div>Статус: <span id="status" class="status-badge status-online">ONLINE</span></div>
-            <div style="font-size: 12px; margin-top: 10px;">Все данные сохраняются в GitHub репозиторий</div>
-        </div>
-        
-        <div class="config-panel">
-            <h3>⚙️ Настройка GitHub API</h3>
-            <input type="text" id="githubToken" placeholder="GitHub Token" style="width: 300px;">
-            <input type="text" id="repoOwner" value="vadim5832" placeholder="Owner">
-            <input type="text" id="repoName" value="Game" placeholder="Repository">
-            <button id="saveConfig">💾 Сохранить настройки</button>
-            <div id="configStatus" style="margin-top: 10px; font-size: 12px;"></div>
-        </div>
-        
-        <h3>📡 Лог запросов</h3>
-        <div class="log" id="log"></div>
-    </div>
+    <h1>🚀 SwiftChat API Server</h1>
+    <div class="log" id="log"></div>
 
     <script>
         // ============================================
-        //   SWIFTCHAT API - ХРАНЕНИЕ В GITHUB
+        //   API СЕРВЕР НА HTML
+        //   Принимает POST запросы, возвращает JSON
         // ============================================
         
-        // Конфигурация GitHub
-        let GITHUB_CONFIG = {
-            token: "",
-            owner: "vadim5832",
-            repo: "Game",
-            branch: "main"
-        };
+        // Хранилище данных (в памяти браузера + localStorage)
+        let users = JSON.parse(localStorage.getItem('swiftchat_users') || '[]');
+        let chats = JSON.parse(localStorage.getItem('swiftchat_chats') || '[]');
+        let messages = JSON.parse(localStorage.getItem('swiftchat_messages') || '{}');
+        let sessions = JSON.parse(localStorage.getItem('swiftchat_sessions') || '{}');
         
-        // Загрузка сохраненной конфигурации
-        const savedToken = localStorage.getItem("github_token");
-        const savedOwner = localStorage.getItem("github_owner");
-        const savedRepo = localStorage.getItem("github_repo");
+        let userIdCounter = users.length > 0 ? Math.max(...users.map(u => u.id), 0) + 1 : 1;
+        let chatIdCounter = chats.length > 0 ? Math.max(...chats.map(c => c.id), 0) + 1 : 1;
+        let msgIdCounter = 1;
         
-        if (savedToken) GITHUB_CONFIG.token = savedToken;
-        if (savedOwner) GITHUB_CONFIG.owner = savedOwner;
-        if (savedRepo) GITHUB_CONFIG.repo = savedRepo;
-        
-        // Заполняем поля
-        const tokenInput = document.getElementById("githubToken");
-        const ownerInput = document.getElementById("repoOwner");
-        const repoInput = document.getElementById("repoName");
-        
-        if (tokenInput) tokenInput.value = GITHUB_CONFIG.token;
-        if (ownerInput) ownerInput.value = GITHUB_CONFIG.owner;
-        if (repoInput) repoInput.value = GITHUB_CONFIG.repo;
-        
-        // Сохранение конфигурации
-        const saveBtn = document.getElementById("saveConfig");
-        if (saveBtn) {
-            saveBtn.onclick = () => {
-                GITHUB_CONFIG.token = tokenInput.value;
-                GITHUB_CONFIG.owner = ownerInput.value;
-                GITHUB_CONFIG.repo = repoInput.value;
-                
-                localStorage.setItem("github_token", GITHUB_CONFIG.token);
-                localStorage.setItem("github_owner", GITHUB_CONFIG.owner);
-                localStorage.setItem("github_repo", GITHUB_CONFIG.repo);
-                
-                const status = document.getElementById("configStatus");
-                status.textContent = "✅ Настройки сохранены!";
-                status.style.color = "#0f0";
-                setTimeout(() => { status.textContent = ""; }, 3000);
-            };
+        // Инициализация демо-данных
+        if (users.length === 0) {
+            users.push({
+                id: userIdCounter++,
+                email: "demo@swiftchat.com",
+                username: "Демо Пользователь",
+                password: "demo123",
+                created_at: Date.now()
+            });
+            
+            chats.push({
+                id: chatIdCounter++,
+                name: "Общий чат",
+                type: "group",
+                participants: [1],
+                created_at: Date.now()
+            });
+            
+            messages[1] = [{
+                id: msgIdCounter++,
+                text: "Добро пожаловать в SwiftChat! 👋",
+                sender_id: 1,
+                sender_name: "Система",
+                created_at: Date.now(),
+                read: false
+            }];
+            
+            saveToLocalStorage();
         }
         
-        // Логирование
+        function saveToLocalStorage() {
+            localStorage.setItem('swiftchat_users', JSON.stringify(users));
+            localStorage.setItem('swiftchat_chats', JSON.stringify(chats));
+            localStorage.setItem('swiftchat_messages', JSON.stringify(messages));
+            localStorage.setItem('swiftchat_sessions', JSON.stringify(sessions));
+        }
+        
         function logRequest(method, endpoint, data, response, status) {
             const logDiv = document.getElementById('log');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
             entry.innerHTML = `
-                <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
-                <span class="method"> ${method}</span>
-                <span> ${endpoint}</span>
-                <span class="status"> → ${status}</span>
-                <div style="margin-top: 5px; font-size: 10px; color: #888;">
-                    📥 ${JSON.stringify(data || {}).substring(0, 200)}<br>
-                    📤 ${JSON.stringify(response || {}).substring(0, 200)}
+                [${new Date().toLocaleTimeString()}] ${method} ${endpoint} → ${status}
+                <div style="margin-left: 20px; color: #888;">
+                    📥 ${JSON.stringify(data || {}).substring(0, 100)}
+                    📤 ${JSON.stringify(response || {}).substring(0, 100)}
                 </div>
             `;
             logDiv.prepend(entry);
-            while(logDiv.children.length > 100) logDiv.removeChild(logDiv.lastChild);
+            while(logDiv.children.length > 50) logDiv.removeChild(logDiv.lastChild);
         }
         
-        // ========== GitHub API Взаимодействие ==========
-        
-        async function getFileFromGitHub(path) {
-            if (!GITHUB_CONFIG.token) return null;
-            
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}`;
-            
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (response.status === 404) return null;
-                if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
-                
-                const data = await response.json();
-                const content = atob(data.content);
-                return JSON.parse(content);
-            } catch (error) {
-                console.error("Error reading file:", error);
-                return null;
-            }
-        }
-        
-        async function saveFileToGitHub(path, data, message) {
-            if (!GITHUB_CONFIG.token) {
-                console.warn("No GitHub token configured");
-                return false;
-            }
-            
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}`;
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-            
-            let sha = null;
-            try {
-                const checkResponse = await fetch(url, {
-                    headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }
-                });
-                if (checkResponse.ok) {
-                    const existing = await checkResponse.json();
-                    sha = existing.sha;
-                }
-            } catch(e) {}
-            
-            const body = {
-                message: message || `Update ${path}`,
-                content: content,
-                branch: GITHUB_CONFIG.branch
-            };
-            if (sha) body.sha = sha;
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-                
-                return response.ok;
-            } catch (error) {
-                console.error("Error saving file:", error);
-                return false;
-            }
-        }
-        
-        // ========== Хранилище данных ==========
-        
-        let cache = {
-            users: [],
-            chats: [],
-            messages: {},
-            sessions: {},
-            pendingCodes: {}
-        };
-        
-        let userIdCounter = 1;
-        let chatIdCounter = 1;
-        let msgIdCounter = 1;
-        
-        // Загрузка данных из GitHub
-        async function loadDataFromGitHub() {
-            console.log("Loading data from GitHub...");
-            
-            const users = await getFileFromGitHub("swiftchat_users.json");
-            if (users && users.length > 0) {
-                cache.users = users;
-                userIdCounter = Math.max(...users.map(u => u.id), 0) + 1;
-            }
-            
-            const chats = await getFileFromGitHub("swiftchat_chats.json");
-            if (chats && chats.length > 0) {
-                cache.chats = chats;
-                chatIdCounter = Math.max(...chats.map(c => c.id), 0) + 1;
-            }
-            
-            const messages = await getFileFromGitHub("swiftchat_messages.json");
-            if (messages) {
-                cache.messages = messages;
-                for (const chatId in messages) {
-                    const msgs = messages[chatId];
-                    if (msgs && msgs.length > 0) {
-                        const maxId = Math.max(...msgs.map(m => m.id));
-                        if (maxId > msgIdCounter) msgIdCounter = maxId + 1;
-                    }
-                }
-            }
-            
-            const sessions = await getFileFromGitHub("swiftchat_sessions.json");
-            if (sessions) cache.sessions = sessions;
-            
-            const codes = await getFileFromGitHub("swiftchat_codes.json");
-            if (codes) cache.pendingCodes = codes;
-            
-            console.log(`Loaded: ${cache.users.length} users, ${cache.chats.length} chats`);
-        }
-        
-        // Сохранение данных в GitHub
-        async function saveDataToGitHub() {
-            if (!GITHUB_CONFIG.token) return false;
-            
-            await saveFileToGitHub("swiftchat_users.json", cache.users, "Update users");
-            await saveFileToGitHub("swiftchat_chats.json", cache.chats, "Update chats");
-            await saveFileToGitHub("swiftchat_messages.json", cache.messages, "Update messages");
-            await saveFileToGitHub("swiftchat_sessions.json", cache.sessions, "Update sessions");
-            await saveFileToGitHub("swiftchat_codes.json", cache.pendingCodes, "Update codes");
-            
-            return true;
-        }
-        
-        // Инициализация демо-данных
-        async function initDemoData() {
-            if (cache.users.length === 0) {
-                cache.users.push({
-                    id: userIdCounter++,
-                    email: "demo@swiftchat.com",
-                    username: "Демо Пользователь",
-                    password: "demo123",
-                    verified: true,
-                    created_at: Date.now()
-                });
-            }
-            
-            if (cache.chats.length === 0) {
-                cache.chats.push({
-                    id: chatIdCounter++,
-                    name: "Общий чат",
-                    type: "group",
-                    participants: [1],
-                    created_at: Date.now()
-                });
-            }
-            
-            if (Object.keys(cache.messages).length === 0 && cache.chats.length > 0) {
-                cache.messages[cache.chats[0].id] = [{
-                    id: msgIdCounter++,
-                    text: "Добро пожаловать в SwiftChat! 👋 Данные сохраняются в GitHub",
-                    sender_id: 1,
-                    sender_name: "Система",
-                    created_at: Date.now(),
-                    read: false
-                }];
-            }
-            
-            await saveDataToGitHub();
-        }
-        
-        // Ответы API
         function jsonResponse(data, status = 200) {
             return { status: status, data: data };
         }
         
-        // ========== API Эндпоинты ==========
+        // ========== API ENDPOINTS ==========
         
-        const API = {
-            root: () => jsonResponse({
-                name: "SwiftChat API (GitHub Storage)",
-                version: "3.0.0",
-                status: "online",
-                storage: "GitHub Repository",
-                repo: `${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`
-            }),
+        async function handleRequest(method, endpoint, data, token) {
+            console.log(`📡 ${method} ${endpoint}`, data);
             
-            sendCode: async (data) => {
-                const { email } = data;
-                if (!email) return jsonResponse({ error: "Email required" }, 400);
-                
-                const code = Math.floor(100000 + Math.random() * 900000).toString();
-                cache.pendingCodes[email] = {
-                    code: code,
-                    expires: Date.now() + 300000
-                };
-                await saveDataToGitHub();
-                
-                console.log(`📧 Код для ${email}: ${code}`);
-                return jsonResponse({ success: true, message: "Code sent", code: code });
-            },
-            
-            verifyCode: async (data) => {
-                const { email, code } = data;
-                const pending = cache.pendingCodes[email];
-                
-                if (!pending) return jsonResponse({ error: "Code not requested" }, 400);
-                if (Date.now() > pending.expires) return jsonResponse({ error: "Code expired" }, 400);
-                if (pending.code !== code) return jsonResponse({ error: "Invalid code" }, 400);
-                
-                delete cache.pendingCodes[email];
-                await saveDataToGitHub();
-                
-                return jsonResponse({ success: true });
-            },
-            
-            register: async (data) => {
-                const { email, username, password } = data;
-                
-                const existing = cache.users.find(u => u.email === email);
-                if (existing) return jsonResponse({ error: "User already exists" }, 400);
-                
-                const newUser = {
-                    id: userIdCounter++,
-                    email: email,
-                    username: username,
-                    password: password,
-                    verified: true,
-                    created_at: Date.now()
-                };
-                cache.users.push(newUser);
-                
-                const generalChat = cache.chats.find(c => c.name === "Общий чат");
-                if (generalChat && !generalChat.participants.includes(newUser.id)) {
-                    generalChat.participants.push(newUser.id);
-                }
-                
-                await saveDataToGitHub();
-                
-                return jsonResponse({
-                    success: true,
-                    user: { id: newUser.id, email: newUser.email, username: newUser.username }
-                });
-            },
-            
-            login: async (data) => {
-                const { email, password } = data;
-                
-                const user = cache.users.find(u => u.email === email && u.password === password);
-                if (!user) return jsonResponse({ error: "Invalid credentials" }, 401);
-                
-                const token = btoa(`${user.id}:${Date.now()}:${Math.random()}`);
-                cache.sessions[token] = {
-                    user_id: user.id,
-                    expires: Date.now() + 604800000
-                };
-                await saveDataToGitHub();
-                
-                return jsonResponse({
-                    access_token: token,
-                    token_type: "bearer",
-                    user: { id: user.id, email: user.email, username: user.username }
-                });
-            },
-            
-            getMe: (token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                const user = cache.users.find(u => u.id === session.user_id);
-                if (!user) return jsonResponse({ error: "User not found" }, 404);
-                
-                return jsonResponse({
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    created_at: user.created_at
-                });
-            },
-            
-            getChats: (token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                const userChats = cache.chats.filter(chat => chat.participants.includes(session.user_id));
-                const result = userChats.map(chat => {
-                    const chatMessages = cache.messages[chat.id] || [];
-                    const lastMsg = chatMessages[chatMessages.length - 1];
-                    const unread = chatMessages.filter(m => m.sender_id !== session.user_id && !m.read).length;
-                    
-                    return {
-                        id: chat.id,
-                        name: chat.name,
-                        type: chat.type,
-                        participants: chat.participants.map(pid => {
-                            const p = cache.users.find(u => u.id === pid);
-                            return { id: p?.id, username: p?.username };
-                        }),
-                        last_message: lastMsg ? {
-                            text: lastMsg.text,
-                            created_at: lastMsg.created_at,
-                            sender_name: lastMsg.sender_name
-                        } : null,
-                        unread_count: unread
+            try {
+                // РЕГИСТРАЦИЯ
+                if (endpoint === "/api/auth/register" && method === "POST") {
+                    const { email, username, password } = data;
+                    if (users.find(u => u.email === email)) {
+                        return jsonResponse({ error: "User already exists" }, 400);
+                    }
+                    const newUser = {
+                        id: userIdCounter++,
+                        email: email,
+                        username: username,
+                        password: password,
+                        created_at: Date.now()
                     };
-                });
-                
-                return jsonResponse(result);
-            },
-            
-            createChat: async (data, token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                const { name, user_ids } = data;
-                const allUsers = [...new Set([session.user_id, ...(user_ids || [])])];
-                
-                const newChat = {
-                    id: chatIdCounter++,
-                    name: name || `Чат ${chatIdCounter}`,
-                    type: allUsers.length === 2 ? "private" : "group",
-                    participants: allUsers,
-                    created_at: Date.now()
-                };
-                cache.chats.push(newChat);
-                cache.messages[newChat.id] = [];
-                await saveDataToGitHub();
-                
-                return jsonResponse({
-                    id: newChat.id,
-                    name: newChat.name,
-                    type: newChat.type
-                });
-            },
-            
-            getMessages: (chat_id, token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                const chat = cache.chats.find(c => c.id == chat_id);
-                if (!chat) return jsonResponse({ error: "Chat not found" }, 404);
-                if (!chat.participants.includes(session.user_id)) {
-                    return jsonResponse({ error: "Not a member" }, 403);
-                }
-                
-                const chatMessages = cache.messages[chat_id] || [];
-                
-                // Помечаем как прочитанные
-                chatMessages.forEach(msg => {
-                    if (msg.sender_id !== session.user_id && !msg.read) {
-                        msg.read = true;
+                    users.push(newUser);
+                    
+                    // Добавляем в общий чат
+                    const generalChat = chats.find(c => c.name === "Общий чат");
+                    if (generalChat && !generalChat.participants.includes(newUser.id)) {
+                        generalChat.participants.push(newUser.id);
                     }
-                });
-                
-                return jsonResponse(chatMessages);
-            },
-            
-            sendMessage: async (data, token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                const { chat_id, text } = data;
-                const chat = cache.chats.find(c => c.id == chat_id);
-                if (!chat) return jsonResponse({ error: "Chat not found" }, 404);
-                if (!chat.participants.includes(session.user_id)) {
-                    return jsonResponse({ error: "Not a member" }, 403);
+                    
+                    saveToLocalStorage();
+                    logRequest(method, endpoint, data, { success: true }, 200);
+                    return jsonResponse({
+                        success: true,
+                        user: { id: newUser.id, email: newUser.email, username: newUser.username }
+                    });
                 }
                 
-                const user = cache.users.find(u => u.id === session.user_id);
-                
-                const newMsg = {
-                    id: msgIdCounter++,
-                    text: text,
-                    sender_id: session.user_id,
-                    sender_name: user.username,
-                    created_at: Date.now(),
-                    read: false
-                };
-                
-                if (!cache.messages[chat_id]) cache.messages[chat_id] = [];
-                cache.messages[chat_id].push(newMsg);
-                await saveDataToGitHub();
-                
-                return jsonResponse(newMsg);
-            },
-            
-            deleteMessage: async (message_id, token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
-                
-                for (const chatId in cache.messages) {
-                    const idx = cache.messages[chatId].findIndex(m => m.id == message_id);
-                    if (idx !== -1) {
-                        const msg = cache.messages[chatId][idx];
-                        if (msg.sender_id !== session.user_id) {
-                            return jsonResponse({ error: "Can only delete own messages" }, 403);
-                        }
-                        cache.messages[chatId].splice(idx, 1);
-                        await saveDataToGitHub();
-                        return jsonResponse({ success: true });
+                // ВХОД
+                if (endpoint === "/api/auth/login" && method === "POST") {
+                    const { email, password } = data;
+                    const user = users.find(u => u.email === email && u.password === password);
+                    if (!user) {
+                        return jsonResponse({ error: "Invalid credentials" }, 401);
                     }
+                    const token = btoa(`${user.id}:${Date.now()}:${Math.random()}`);
+                    sessions[token] = { user_id: user.id, expires: Date.now() + 604800000 };
+                    saveToLocalStorage();
+                    logRequest(method, endpoint, data, { token: "***" }, 200);
+                    return jsonResponse({
+                        access_token: token,
+                        user: { id: user.id, email: user.email, username: user.username }
+                    });
                 }
                 
-                return jsonResponse({ error: "Message not found" }, 404);
-            },
-            
-            searchUsers: (query, token) => {
-                const session = cache.sessions[token];
-                if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                // ПОЛУЧИТЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+                if (endpoint === "/api/users/me" && method === "GET") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    const user = users.find(u => u.id === session.user_id);
+                    if (!user) return jsonResponse({ error: "User not found" }, 404);
+                    return jsonResponse({ id: user.id, email: user.email, username: user.username });
+                }
                 
-                const results = cache.users.filter(u => 
-                    u.id !== session.user_id && 
-                    (u.email.includes(query) || u.username.includes(query))
-                ).map(u => ({
-                    id: u.id,
-                    email: u.email,
-                    username: u.username
-                }));
+                // ПОЛУЧИТЬ ЧАТЫ
+                if (endpoint === "/api/chats" && method === "GET") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    
+                    const userChats = chats.filter(chat => chat.participants.includes(session.user_id));
+                    const result = userChats.map(chat => {
+                        const chatMessages = messages[chat.id] || [];
+                        const lastMsg = chatMessages[chatMessages.length - 1];
+                        const unread = chatMessages.filter(m => m.sender_id !== session.user_id && !m.read).length;
+                        
+                        return {
+                            id: chat.id,
+                            name: chat.name,
+                            type: chat.type,
+                            participants: chat.participants.map(pid => {
+                                const p = users.find(u => u.id === pid);
+                                return { id: p?.id, username: p?.username };
+                            }),
+                            last_message: lastMsg ? { text: lastMsg.text, sender_name: lastMsg.sender_name } : null,
+                            unread_count: unread
+                        };
+                    });
+                    return jsonResponse(result);
+                }
                 
-                return jsonResponse(results);
-            }
-        };
-        
-        // ========== Обработка запросов ==========
-        
-        async function handleRequest(req, res) {
-            let body = {};
-            try {
-                body = await req.json();
-            } catch(e) {
-                body = {};
-            }
-            
-            const { method, endpoint, data, token } = body;
-            
-            console.log(`📡 API Request: ${method} ${endpoint}`, data);
-            
-            let response;
-            
-            try {
-                if (endpoint === "/" && method === "GET") {
-                    response = API.root();
+                // СОЗДАТЬ ЧАТ
+                if (endpoint === "/api/chats" && method === "POST") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    
+                    const { name, user_ids } = data;
+                    const allUsers = [...new Set([session.user_id, ...(user_ids || [])])];
+                    const newChat = {
+                        id: chatIdCounter++,
+                        name: name || `Чат ${chatIdCounter}`,
+                        type: allUsers.length === 2 ? "private" : "group",
+                        participants: allUsers,
+                        created_at: Date.now()
+                    };
+                    chats.push(newChat);
+                    messages[newChat.id] = [];
+                    saveToLocalStorage();
+                    return jsonResponse({ id: newChat.id, name: newChat.name, type: newChat.type });
                 }
-                else if (endpoint === "/api/auth/send-code" && method === "POST") {
-                    response = await API.sendCode(data);
-                }
-                else if (endpoint === "/api/auth/verify-code" && method === "POST") {
-                    response = await API.verifyCode(data);
-                }
-                else if (endpoint === "/api/auth/register" && method === "POST") {
-                    response = await API.register(data);
-                }
-                else if (endpoint === "/api/auth/login" && method === "POST") {
-                    response = await API.login(data);
-                }
-                else if (endpoint === "/api/users/me" && method === "GET") {
-                    response = API.getMe(token);
-                }
-                else if (endpoint.startsWith("/api/users/search") && method === "GET") {
-                    const url = new URL(endpoint, "http://localhost");
-                    const query = url.searchParams.get("q") || "";
-                    response = API.searchUsers(query, token);
-                }
-                else if (endpoint === "/api/chats" && method === "GET") {
-                    response = API.getChats(token);
-                }
-                else if (endpoint === "/api/chats" && method === "POST") {
-                    response = await API.createChat(data, token);
-                }
-                else if (endpoint.match(/^\/api\/messages\/\d+$/) && method === "GET") {
+                
+                // ПОЛУЧИТЬ СООБЩЕНИЯ
+                if (endpoint.match(/^\/api\/messages\/\d+$/) && method === "GET") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    
                     const chatId = parseInt(endpoint.split("/")[3]);
-                    response = API.getMessages(chatId, token);
-                }
-                else if (endpoint === "/api/messages" && method === "POST") {
-                    response = await API.sendMessage(data, token);
-                }
-                else if (endpoint.match(/^\/api\/messages\/\d+$/) && method === "DELETE") {
-                    const msgId = parseInt(endpoint.split("/")[3]);
-                    response = await API.deleteMessage(msgId, token);
-                }
-                else {
-                    response = jsonResponse({ error: "Endpoint not found" }, 404);
+                    const chat = chats.find(c => c.id === chatId);
+                    if (!chat || !chat.participants.includes(session.user_id)) {
+                        return jsonResponse({ error: "Not a member" }, 403);
+                    }
+                    
+                    const chatMessages = messages[chatId] || [];
+                    chatMessages.forEach(msg => {
+                        if (msg.sender_id !== session.user_id && !msg.read) {
+                            msg.read = true;
+                        }
+                    });
+                    saveToLocalStorage();
+                    return jsonResponse(chatMessages);
                 }
                 
-                logRequest(method, endpoint, data, response.data, response.status);
-                res.setHeader('Content-Type', 'application/json');
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.status(200).json(response);
+                // ОТПРАВИТЬ СООБЩЕНИЕ
+                if (endpoint === "/api/messages" && method === "POST") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    
+                    const { chat_id, text } = data;
+                    const chat = chats.find(c => c.id === chat_id);
+                    if (!chat || !chat.participants.includes(session.user_id)) {
+                        return jsonResponse({ error: "Not a member" }, 403);
+                    }
+                    
+                    const user = users.find(u => u.id === session.user_id);
+                    const newMsg = {
+                        id: msgIdCounter++,
+                        text: text,
+                        sender_id: session.user_id,
+                        sender_name: user.username,
+                        created_at: Date.now(),
+                        read: false
+                    };
+                    
+                    if (!messages[chat_id]) messages[chat_id] = [];
+                    messages[chat_id].push(newMsg);
+                    saveToLocalStorage();
+                    return jsonResponse(newMsg);
+                }
+                
+                // ПОИСК ПОЛЬЗОВАТЕЛЕЙ
+                if (endpoint.startsWith("/api/users/search") && method === "GET") {
+                    const session = sessions[token];
+                    if (!session) return jsonResponse({ error: "Unauthorized" }, 401);
+                    
+                    const query = endpoint.split("?q=")[1] || "";
+                    const results = users.filter(u => 
+                        u.id !== session.user_id && 
+                        (u.email.includes(query) || u.username.includes(query))
+                    ).map(u => ({ id: u.id, email: u.email, username: u.username }));
+                    return jsonResponse(results);
+                }
+                
+                return jsonResponse({ error: "Endpoint not found" }, 404);
                 
             } catch (error) {
                 logRequest(method, endpoint, data, { error: error.message }, 500);
-                res.setHeader('Content-Type', 'application/json');
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.status(200).json(jsonResponse({ error: error.message }, 500));
+                return jsonResponse({ error: error.message }, 500);
             }
         }
         
-        // Инициализация
-        async function init() {
-            await loadDataFromGitHub();
-            await initDemoData();
-            console.log("✅ SwiftChat API Server (GitHub Storage) запущен!");
-            console.log(`📁 Репозиторий: ${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`);
-            
-            // Обновляем статус
-            const statusSpan = document.getElementById("status");
-            if (statusSpan) {
-                statusSpan.textContent = "ONLINE";
-                statusSpan.className = "status-badge status-online";
+        // Обработка входящих POST запросов
+        window.processRequest = async function(requestData) {
+            const { method, endpoint, data, token } = requestData;
+            const result = await handleRequest(method, endpoint, data, token);
+            logRequest(method, endpoint, data, result.data, result.status);
+            return result;
+        };
+        
+        // Для fetch запросов
+        self.addEventListener('fetch', async (event) => {
+            if (event.request.method === 'POST') {
+                event.respondWith(async () => {
+                    const requestData = await event.request.json();
+                    const result = await handleRequest(
+                        requestData.method,
+                        requestData.endpoint,
+                        requestData.data,
+                        requestData.token
+                    );
+                    return new Response(JSON.stringify(result), {
+                        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                    });
+                }());
             }
-        }
+        });
         
-        init();
-        
-        // Экспортируем функцию для обработки запросов
-        window.handleAPIRequest = handleRequest;
-        
-        // Для тестирования
-        console.log("API доступен по адресу: " + window.location.href);
-        console.log("Пример запроса: fetch(window.location.href, {method: 'POST', body: JSON.stringify({method:'GET', endpoint:'/', data:{}})}).then(r=>r.json())");
+        console.log("✅ SwiftChat API Server запущен!");
+        console.log(`📁 Пользователей: ${users.length}, Чатов: ${chats.length}`);
     </script>
 </body>
 </html>
