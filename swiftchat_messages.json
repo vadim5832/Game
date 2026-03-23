@@ -26,6 +26,15 @@
       "sender_name": "vadim5832",
       "created_at": 1774238751807,
       "read": false
+    },
+    {
+      "id": 4,
+      "chat_id": 1,
+      "text": "пока",
+      "sender_id": 1,
+      "sender_name": "vadim5832",
+      "created_at": 1774239180916,
+      "read": false
     }
   ]
 }
